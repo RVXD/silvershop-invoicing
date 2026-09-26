@@ -21,7 +21,7 @@
     <div class="parties">
         <div>
             <p class="party__label">Credited to</p>
-            <p class="party__body">$Order.Name<br />$Order.LatestEmail<% if $Order.BillingAddress %><br />$Order.BillingAddress<% end_if %></p>
+            <p class="party__body"><% if $Order.BillingAddress %>$Order.BillingAddress<br /><% else %>$Order.Name<br /><% end_if %>$Order.LatestEmail</p>
         </div>
         <div>
             <% if $Invoice %><p class="party__label">Against invoice</p><p class="party__body">$Invoice.Number</p><% end_if %>

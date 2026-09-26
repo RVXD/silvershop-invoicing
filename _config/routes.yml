@@ -1,0 +1,7 @@
+---
+Name: silvershop-invoicing-routes
+Before: '#rootroutes'
+---
+SilverStripe\Control\Director:
+  rules:
+    'invoicing': 'SilverShop\Invoicing\ShopDocumentController'

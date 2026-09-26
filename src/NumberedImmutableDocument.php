@@ -2,8 +2,12 @@
 
 namespace SilverShop\Invoicing;
 
+use LeKoala\CmsActions\CustomLink;
 use SilverShop\ORM\FieldType\ShopCurrency;
+use SilverStripe\Control\Director;
+use SilverStripe\Core\Convert;
 use SilverStripe\Core\Validation\ValidationException;
+use SilverStripe\Forms\LiteralField;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\FieldType\DBField;
 
@@ -65,11 +69,82 @@ trait NumberedImmutableDocument
 
     public function ModifierLines()
     {
-        return $this->Lines()->filter('Kind', 'Modifier');
+        // Hide zero-amount adjustments (e.g. a $0 discount) — they only add noise.
+        return $this->Lines()->filter('Kind', 'Modifier')->exclude('Amount', 0);
     }
 
     public function Subtotal(): DBField
     {
         return DBField::create_field(ShopCurrency::class, (float) $this->ItemLines()->sum('Amount'));
+    }
+
+    /**
+     * Absolute URL of the printable document (HTML view). Append "/pdf" for the PDF.
+     * Uses the class's `document_url_segment` config (e.g. "invoice", "creditmemo").
+     */
+    public function DocumentURL(): string
+    {
+        $segment = (string) $this->config()->get('document_url_segment');
+        if (!$segment || !$this->ID) {
+            return '';
+        }
+
+        return Director::absoluteURL('invoicing/' . $segment . '/' . $this->ID);
+    }
+
+    /**
+     * Add a "Preview" tab that embeds the rendered document in an iframe, so the whole
+     * invoice / credit memo is visible inside the CMS without leaving the record.
+     */
+    public function getCMSFields()
+    {
+        $fields = parent::getCMSFields();
+
+        $url = $this->DocumentURL();
+        if ($url) {
+            $fields->addFieldToTab(
+                'Root.Preview',
+                LiteralField::create(
+                    'DocumentPreview',
+                    sprintf(
+                        '<div class="invoicing-preview" style="margin-top:12px">'
+                        . '<iframe src="%s" title="%s" loading="lazy" style="width:100%%;'
+                        . 'height:78vh;border:1px solid rgba(0,0,0,.12);border-radius:6px;'
+                        . 'background:#fff"></iframe></div>',
+                        Convert::raw2att($url),
+                        Convert::raw2att((string) $this->Number)
+                    )
+                )
+            );
+        }
+
+        return $fields;
+    }
+
+    /**
+     * Add Print (HTML) and PDF buttons to the detail-view bottom bar via
+     * lekoala/silverstripe-cms-actions. Both open in a new tab.
+     */
+    public function getCMSActions()
+    {
+        $actions = parent::getCMSActions();
+
+        $url = $this->DocumentURL();
+        if ($url) {
+            $print = (new CustomLink('printDocument', _t(self::class . '.PRINT', 'Print'), $url))
+                ->setButtonIcon('print')
+                ->setNewWindow(true)
+                ->addExtraClass('btn-outline-primary');
+
+            $pdf = (new CustomLink('downloadDocumentPdf', _t(self::class . '.PDF', 'Download PDF'), $url . '/pdf'))
+                ->setButtonIcon('down-circled')
+                ->setNewWindow(true)
+                ->addExtraClass('btn-primary');
+
+            $actions->push($print);
+            $actions->push($pdf);
+        }
+
+        return $actions;
     }
 }

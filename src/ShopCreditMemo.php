@@ -60,6 +60,8 @@ class ShopCreditMemo extends DataObject
 
     private static string $number_prefix = 'CM-';
 
+    private static string $document_url_segment = 'creditmemo';
+
     public function forTemplate(): string
     {
         return (string) $this->renderWith('SilverShop/Invoicing/CreditMemo');

@@ -59,6 +59,8 @@ class ShopInvoice extends DataObject
      */
     private static string $number_prefix = 'INV-';
 
+    private static string $document_url_segment = 'invoice';
+
     /**
      * Render the invoice through the theme cascade so a project can override
      * templates/SilverShop/Invoicing/Invoice.ss in app/ or its theme.
