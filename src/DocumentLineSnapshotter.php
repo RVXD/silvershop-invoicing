@@ -21,15 +21,20 @@ class DocumentLineSnapshotter
         $sort = 0;
 
         foreach ($order->Items() as $item) {
+            $buyable = $item->hasMethod('Buyable') ? $item->Buyable() : null;
+
             $line = $lineClass::create();
             $line->$parentField = $parentId;
             $line->Kind = 'Item';
             $line->Title = $item->getTableTitle();
+            $line->SKU = $buyable && $buyable->InternalItemID ? (string) $buyable->InternalItemID : '';
             $line->Quantity = $item->Quantity;
             $line->UnitAmount = (float) $item->UnitPrice();
             $line->Amount = (float) $item->Total();
             $line->OrderItemID = $item->ID;
             $line->Sort = ++$sort;
+            // Extension point: enrich the item line from its source OrderItem before it is frozen.
+            $line->extend('updateSnapshotLine', $item, $order);
             $line->write();
         }
 
@@ -51,6 +56,8 @@ class DocumentLineSnapshotter
             $line->Amount = $amount;
             $line->OrderModifierID = $modifier->ID;
             $line->Sort = ++$sort;
+            // Extension point: enrich the modifier line from its source OrderModifier.
+            $line->extend('updateSnapshotLine', $modifier, $order);
             $line->write();
         }
     }

@@ -22,6 +22,7 @@ class ShopCreditMemoLine extends DataObject
     private static array $db = [
         'Kind' => "Enum('Item,Modifier','Item')",
         'Title' => 'Varchar(255)',
+        'SKU' => 'Varchar(100)',
         'Quantity' => 'Decimal(12,2)',
         'UnitAmount' => ShopCurrency::class,
         'Amount' => ShopCurrency::class,

@@ -53,7 +53,7 @@
         <tbody>
             <% loop $ItemLines %>
                 <tr>
-                    <td class="desc">$Title</td>
+                    <td class="desc">$Title<% if $SKU %><span class="sku">SKU $SKU</span><% end_if %></td>
                     <td class="num">$Quantity</td>
                     <td class="num">$UnitAmount.Nice</td>
                     <td class="num">$Amount.Nice</td>

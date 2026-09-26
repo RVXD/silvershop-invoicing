@@ -47,6 +47,8 @@ class CreditMemoService
             if ($invoice = ShopInvoice::get()->filter('OrderID', $order->ID)->first()) {
                 $memo->InvoiceID = $invoice->ID;
             }
+            // Extension point: adjust the credit memo from its order/payment before it is written & frozen.
+            $memo->extend('updateDocumentFromOrder', $order, $payment);
             $memo->write();
 
             DocumentLineSnapshotter::snapshot($order, ShopCreditMemoLine::class, 'CreditMemoID', $memo->ID);

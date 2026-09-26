@@ -46,6 +46,8 @@ class InvoiceService
             }
             $invoice->Total = (float) $order->Total();
             $invoice->Currency = $order->Currency();
+            // Extension point: adjust the invoice from its order/payment before it is written & frozen.
+            $invoice->extend('updateDocumentFromOrder', $order, $payment);
             $invoice->write();
 
             DocumentLineSnapshotter::snapshot($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID);

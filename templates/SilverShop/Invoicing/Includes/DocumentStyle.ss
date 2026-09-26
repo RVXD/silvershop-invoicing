@@ -39,6 +39,7 @@
     table.lines thead th.num { text-align: right; }
     table.lines tbody td { padding: 12px 0; border-bottom: 1px solid #e7e9ee; vertical-align: top; }
     td.desc { font-weight: 600; padding-right: 16px; }
+    td.desc .sku { display: block; margin-top: 2px; font-weight: 400; font-size: 11px; color: #6b7280; }
 
     /* Totals: right-aligned via a two-cell wrapper (dompdf-safe) */
     table.totals-wrap { width: 100%; margin-top: 18px; }
