@@ -28,7 +28,7 @@ class OrderInvoiceExtension extends Extension
             'Invoices',
             ShopInvoice::get()->filter('OrderID', $order->ID),
             GridFieldConfig_RecordViewer::create()
-        ));
+        )->addExtraClass('mb-4'));
 
         $fields->addFieldToTab('Root.CreditMemos', GridField::create(
             'ShopCreditMemos',
