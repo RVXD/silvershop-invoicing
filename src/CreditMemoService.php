@@ -5,6 +5,7 @@ namespace SilverShop\Invoicing;
 use SilverShop\Model\Order;
 use SilverStripe\Omnipay\Model\Payment;
 use SilverStripe\ORM\DB;
+use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * Builds an immutable {@link ShopCreditMemo} (with snapshot lines) from a refunded payment/order.
@@ -53,6 +54,10 @@ class CreditMemoService
 
             DocumentLineSnapshotter::snapshot($order, ShopCreditMemoLine::class, 'CreditMemoID', $memo->ID);
         });
+
+        if ($memo && SiteConfig::current_site_config()->InvoiceEmailOnIssue) {
+            DocumentEmailService::send($memo);
+        }
 
         return $memo;
     }

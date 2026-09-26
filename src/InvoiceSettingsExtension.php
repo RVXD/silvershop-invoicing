@@ -6,6 +6,7 @@ use SilverStripe\AssetAdmin\Forms\UploadField;
 use SilverStripe\Assets\Image;
 use SilverStripe\Core\Convert;
 use SilverStripe\Core\Extension;
+use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\DropdownField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\TextareaField;
@@ -34,6 +35,7 @@ class InvoiceSettingsExtension extends Extension
         'InvoiceRegistrationNumber' => 'Varchar(64)',
         'InvoiceFooterText' => 'Text',
         'InvoicePaperSize' => "Enum('A4,Letter','A4')",
+        'InvoiceEmailOnIssue' => 'Boolean',
     ];
 
     private static array $has_one = [
@@ -57,6 +59,8 @@ class InvoiceSettingsExtension extends Extension
             TextField::create('InvoiceRegistrationNumber', 'Registration / company no.'),
             TextareaField::create('InvoiceFooterText', 'Document footer text')
                 ->setDescription('Payment terms / thank-you note printed at the bottom of every document.'),
+            CheckboxField::create('InvoiceEmailOnIssue', 'Email the invoice to the customer when it is issued')
+                ->setDescription('Automatically emails the PDF to the order email on capture. You can also email manually from each document.'),
         ]);
     }
 

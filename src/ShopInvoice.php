@@ -29,6 +29,7 @@ class ShopInvoice extends DataObject
         'Issued' => 'Datetime',
         'Total' => ShopCurrency::class,
         'Currency' => 'Varchar(3)',
+        'EmailSent' => 'Datetime',
     ];
 
     private static array $has_one = [
@@ -51,6 +52,7 @@ class ShopInvoice extends DataObject
         'Order.Reference' => 'Order',
         'Order.Name' => 'Customer',
         'Total.Nice' => 'Total',
+        'EmailSent.Nice' => 'Emailed',
     ];
 
     private static array $searchable_fields = ['Number', 'Order.Reference', 'Order.LatestEmail'];

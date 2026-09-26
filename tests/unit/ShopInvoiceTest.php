@@ -7,6 +7,7 @@ use SilverShop\Invoicing\ShopInvoice;
 use SilverShop\Model\Order;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Dev\SapphireTest;
+use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Omnipay\Model\Payment;
 
 /**
@@ -105,6 +106,22 @@ class ShopInvoiceTest extends SapphireTest
         $this->assertFalse($invoice->canDelete());
 
         $invoice->Total = 999;
+        $this->expectException(ValidationException::class);
+        $invoice->write();
+    }
+
+    public function testEmailSentIsMutableButContentIsNot(): void
+    {
+        $order = $this->objFromFixture(Order::class, 'order');
+        $invoice = InvoiceService::invoiceForOrder($order);
+
+        // A status field may change after issue...
+        $invoice->EmailSent = DBDatetime::now()->getValue();
+        $invoice->write();
+        $this->assertNotEmpty($invoice->EmailSent);
+
+        // ...but financial content still may not.
+        $invoice->Total = 1;
         $this->expectException(ValidationException::class);
         $invoice->write();
     }

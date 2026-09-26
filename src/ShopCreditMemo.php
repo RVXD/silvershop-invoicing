@@ -32,6 +32,7 @@ class ShopCreditMemo extends DataObject
         'Total' => ShopCurrency::class,
         'Currency' => 'Varchar(3)',
         'Reason' => 'Text',
+        'EmailSent' => 'Datetime',
     ];
 
     private static array $has_one = [
@@ -55,6 +56,7 @@ class ShopCreditMemo extends DataObject
         'Order.Reference' => 'Order',
         'Order.Name' => 'Customer',
         'Total.Nice' => 'Total',
+        'EmailSent.Nice' => 'Emailed',
     ];
 
     private static array $searchable_fields = ['Number', 'Order.Reference', 'Order.LatestEmail'];

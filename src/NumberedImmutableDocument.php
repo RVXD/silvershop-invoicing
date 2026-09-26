@@ -2,6 +2,7 @@
 
 namespace SilverShop\Invoicing;
 
+use LeKoala\CmsActions\CustomAction;
 use LeKoala\CmsActions\CustomLink;
 use SilverShop\ORM\FieldType\ShopCurrency;
 use SilverStripe\Control\Director;
@@ -9,9 +10,11 @@ use SilverStripe\Core\Convert;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\ReadonlyField;
+use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\Security\Member;
+use SilverStripe\Security\Security;
 
 /**
  * Shared behaviour for immutable, sequentially-numbered financial documents (invoice, credit memo):
@@ -32,6 +35,12 @@ trait NumberedImmutableDocument
 
     private static int $number_start = 1;
 
+    /**
+     * Fields allowed to change after a document is issued. The financial content stays frozen; these
+     * are status flags only (e.g. the "emailed to customer" timestamp).
+     */
+    private static array $mutable_fields = ['EmailSent'];
+
     protected function onBeforeWrite(): void
     {
         if (!$this->isInDB()) {
@@ -42,11 +51,22 @@ trait NumberedImmutableDocument
             if (!$this->Number) {
                 $this->Number = $this->generateNumber();
             }
-        } elseif ($this->isChanged()) {
+        } elseif ($this->hasImmutableChanges()) {
             throw new ValidationException(static::class . ' records are immutable once issued.');
         }
 
         parent::onBeforeWrite();
+    }
+
+    /**
+     * True when a frozen (non-{@link $mutable_fields}) field has changed on an already-issued document.
+     */
+    protected function hasImmutableChanges(): bool
+    {
+        $allowed = array_merge((array) $this->config()->get('mutable_fields'), ['LastEdited']);
+        $changed = array_keys($this->getChangedFields(true, DataObject::CHANGE_VALUE));
+
+        return (bool) array_diff($changed, $allowed);
     }
 
     /**
@@ -217,14 +237,43 @@ trait NumberedImmutableDocument
 
         $url = $this->DocumentURL();
         if ($url) {
-            $pdf = (new CustomLink('downloadDocumentPdf', _t(self::class . '.PDF', 'Download PDF'), $url . '/pdf'))
-                ->setButtonIcon('down-circled')
-                ->setNewWindow(true)
-                ->addExtraClass('btn-primary');
+            $actions->push(
+                (new CustomLink('downloadDocumentPdf', _t(self::class . '.PDF', 'Download PDF'), $url . '/pdf'))
+                    ->setButtonIcon('down-circled')
+                    ->setNewWindow(true)
+                    ->addExtraClass('btn-primary')
+            );
+        }
 
-            $actions->push($pdf);
+        $order = $this->Order();
+        if ($order && $order->exists() && $order->LatestEmail) {
+            $label = $this->EmailSent
+                ? _t(self::class . '.EMAIL_RESEND', 'Re-email to customer')
+                : _t(self::class . '.EMAIL_BUTTON', 'Email to customer');
+            $actions->push(
+                (new CustomAction('emailToCustomer', $label))->setButtonIcon('email')
+            );
         }
 
         return $actions;
+    }
+
+    /**
+     * cms-actions handler for the "Email to customer" button: sends the document (PDF attached) to the
+     * order's email address, records it and returns a status message.
+     */
+    public function emailToCustomer($data = null, $form = null, $controller = null): string
+    {
+        $order = $this->Order();
+        $recipient = ($order && $order->exists()) ? (string) $order->LatestEmail : '';
+        if (!$recipient) {
+            return _t(self::class . '.EMAIL_NONE', 'No customer email address on the order.');
+        }
+
+        if (DocumentEmailService::send($this, Security::getCurrentUser())) {
+            return _t(self::class . '.EMAIL_OK', 'Emailed to {email}', ['email' => $recipient]);
+        }
+
+        return _t(self::class . '.EMAIL_FAIL', 'The email could not be sent.');
     }
 }

@@ -5,6 +5,7 @@ namespace SilverShop\Invoicing;
 use SilverShop\Model\Order;
 use SilverStripe\Omnipay\Model\Payment;
 use SilverStripe\ORM\DB;
+use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * Builds an immutable {@link ShopInvoice} (with its snapshot lines) from an order/payment.
@@ -52,6 +53,11 @@ class InvoiceService
 
             DocumentLineSnapshotter::snapshot($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID);
         });
+
+        // Optionally email the customer once the invoice is fully committed (opt-in via SiteConfig).
+        if ($invoice && SiteConfig::current_site_config()->InvoiceEmailOnIssue) {
+            DocumentEmailService::send($invoice);
+        }
 
         return $invoice;
     }
