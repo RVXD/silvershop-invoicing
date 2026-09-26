@@ -38,6 +38,7 @@ class ShopInvoice extends DataObject
 
     private static array $has_many = [
         'Lines' => ShopInvoiceLine::class,
+        'Comments' => ShopDocumentComment::class . '.Document',
     ];
 
     private static array $cascade_deletes = ['Lines'];

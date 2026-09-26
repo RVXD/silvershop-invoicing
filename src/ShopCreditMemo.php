@@ -42,6 +42,7 @@ class ShopCreditMemo extends DataObject
 
     private static array $has_many = [
         'Lines' => ShopCreditMemoLine::class,
+        'Comments' => ShopDocumentComment::class . '.Document',
     ];
 
     private static array $cascade_deletes = ['Lines'];

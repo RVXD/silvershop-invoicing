@@ -83,6 +83,19 @@ class ShopInvoiceTest extends SapphireTest
         $this->assertSame($seq($b->Number) + 1, $seq($c->Number));
     }
 
+    public function testCommentsAppendToHistory(): void
+    {
+        $order = $this->objFromFixture(Order::class, 'order');
+        $invoice = InvoiceService::invoiceForOrder($order);
+
+        $comment = $invoice->addComment('Emailed to customer', true);
+
+        $this->assertSame((int) $invoice->ID, (int) $comment->DocumentID);
+        $this->assertSame(ShopInvoice::class, $comment->DocumentClass);
+        $this->assertCount(1, $invoice->Comments());
+        $this->assertTrue((bool) $invoice->Comments()->first()->NotifyCustomer);
+    }
+
     public function testInvoiceIsImmutable(): void
     {
         $order = $this->objFromFixture(Order::class, 'order');

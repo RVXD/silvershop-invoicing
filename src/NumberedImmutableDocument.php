@@ -11,6 +11,7 @@ use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\FieldType\DBField;
+use SilverStripe\Security\Member;
 
 /**
  * Shared behaviour for immutable, sequentially-numbered financial documents (invoice, credit memo):
@@ -134,6 +135,30 @@ trait NumberedImmutableDocument
     }
 
     /**
+     * Append a note to this document's history (see {@link ShopDocumentComment}). Used both by staff
+     * (CMS) and by the module itself to log events such as "invoice emailed to customer".
+     */
+    public function addComment(
+        string $body,
+        bool $notifyCustomer = false,
+        bool $visibleOnFront = false,
+        ?Member $author = null
+    ): ShopDocumentComment {
+        $comment = ShopDocumentComment::create();
+        $comment->Body = $body;
+        $comment->NotifyCustomer = $notifyCustomer;
+        $comment->VisibleOnFront = $visibleOnFront;
+        $comment->DocumentID = $this->ID;
+        $comment->DocumentClass = static::class;
+        if ($author) {
+            $comment->AuthorID = $author->ID;
+        }
+        $comment->write();
+
+        return $comment;
+    }
+
+    /**
      * Add a "Preview" tab that embeds the rendered document in an iframe, so the whole
      * invoice / credit memo is visible inside the CMS without leaving the record.
      */
@@ -157,6 +182,9 @@ trait NumberedImmutableDocument
                 $fields->addFieldsToTab('Root.Main', $summary);
             }
         }
+
+        // The Comments has_many auto-scaffolds its own tab; DocumentCommentsFormExtension re-enables
+        // that grid for adding (the rest of the read-only form stays frozen).
 
         // Preview tab: embed the real rendered PDF (not the HTML), so it matches the download exactly.
         $url = $this->DocumentURL();

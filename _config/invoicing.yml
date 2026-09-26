@@ -13,3 +13,7 @@ SilverStripe\Omnipay\Model\Payment:
 SilverStripe\SiteConfig\SiteConfig:
   extensions:
     - SilverShop\Invoicing\InvoiceSettingsExtension
+
+SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest:
+  extensions:
+    - SilverShop\Invoicing\DocumentCommentsFormExtension
