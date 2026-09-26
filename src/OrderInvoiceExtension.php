@@ -7,6 +7,7 @@ use SilverStripe\Core\Extension;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordViewer;
+use SilverStripe\Forms\HeaderField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\NumericField;
 
@@ -40,26 +41,40 @@ class OrderInvoiceExtension extends Extension
         // Partial invoicing: quantity inputs for whatever is still to invoice.
         $remaining = InvoiceService::remainingQuantities($order);
         if ($remaining) {
-            $fields->addFieldToTab('Root.Invoices', LiteralField::create(
-                'PartialInvoiceIntro',
-                '<div class="alert alert-info">Enter quantities to invoice now, then use the '
-                . '<strong>Create partial invoice</strong> button at the bottom.</div>'
-            ));
+            $fields->addFieldToTab('Root.Invoices', HeaderField::create('CreateInvoiceHeader', 'Create an invoice', 3));
+
             foreach ($order->Items() as $item) {
                 if (!isset($remaining[$item->ID])) {
                     continue;
                 }
-                $fields->addFieldToTab('Root.Invoices', NumericField::create(
-                    'PartialQty_' . $item->ID,
-                    $item->getTableTitle() . ' — remaining ' . (float) $remaining[$item->ID]
-                )->setScale(0)->setValue(0));
+                $fields->addFieldToTab('Root.Invoices', NumericField::create('PartialQty_' . $item->ID, $item->getTableTitle())
+                    ->setScale(0)
+                    ->setValue(0)
+                    ->setDescription('Remaining to invoice: ' . (float) $remaining[$item->ID]));
             }
+
+            $fields->addFieldToTab('Root.Invoices', LiteralField::create('PartialInvoiceInfo', $this->infoNotice(
+                '<strong>Partial invoicing</strong> lets you issue an invoice for only part of this order — for '
+                . 'example when you ship some items now and the rest later. Enter how many of each remaining item to '
+                . 'invoice, then click <strong>Create partial invoice</strong> below. The remaining quantities stay '
+                . 'available to invoice later, and any tax or shipping is added to the invoice that completes the order. '
+                . 'Leave every quantity at 0 to invoice nothing.'
+            )));
         } else {
-            $fields->addFieldToTab('Root.Invoices', LiteralField::create(
-                'FullyInvoicedNotice',
-                '<div class="alert alert-success">This order is fully invoiced.</div>'
-            ));
+            $fields->addFieldToTab('Root.Invoices', LiteralField::create('FullyInvoicedNotice', $this->infoNotice(
+                'This order is <strong>fully invoiced</strong> — every ordered item has been invoiced, so there is '
+                . 'nothing left to invoice.'
+            )));
         }
+    }
+
+    /**
+     * Core-style admin info notice (info-circle icon + spacing), matching SilverShop's other notices.
+     */
+    private function infoNotice(string $text): string
+    {
+        return '<p class="message notice" style="margin-top:1.5em;display:flex;align-items:flex-start;gap:.5em">'
+            . '<span class="font-icon-info-circled" aria-hidden="true"></span><span>' . $text . '</span></p>';
     }
 
     /**
