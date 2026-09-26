@@ -34,4 +34,21 @@ class OrderInvoiceExtension extends Extension
             GridFieldConfig_RecordViewer::create()
         ));
     }
+
+    /**
+     * The order's issued invoices — for storefront templates (customer account order page). Each item
+     * exposes DocumentURL() (append "/pdf") and is gated by the document's canView().
+     */
+    public function CustomerInvoices()
+    {
+        return ShopInvoice::get()->filter('OrderID', $this->getOwner()->ID);
+    }
+
+    /**
+     * The order's issued credit memos — for storefront templates.
+     */
+    public function CustomerCreditMemos()
+    {
+        return ShopCreditMemo::get()->filter('OrderID', $this->getOwner()->ID);
+    }
 }

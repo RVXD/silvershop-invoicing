@@ -9,6 +9,7 @@ use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Omnipay\Model\Payment;
+use SilverStripe\Security\Member;
 
 /**
  * Covers invoice issuance from an order/payment: line snapshotting (items + signed modifiers),
@@ -95,6 +96,32 @@ class ShopInvoiceTest extends SapphireTest
         $this->assertSame(ShopInvoice::class, $comment->DocumentClass);
         $this->assertCount(1, $invoice->Comments());
         $this->assertTrue((bool) $invoice->Comments()->first()->NotifyCustomer);
+    }
+
+    public function testCanViewRestrictedToStaffAndOwner(): void
+    {
+        $order = $this->objFromFixture(Order::class, 'order');
+        $invoice = InvoiceService::invoiceForOrder($order);
+
+        $owner = Member::create(['Email' => 'owner@example.com']);
+        $owner->write();
+        $order->MemberID = $owner->ID;
+        $order->write();
+
+        $stranger = Member::create(['Email' => 'stranger@example.com']);
+        $stranger->write();
+
+        $this->logOut();
+        $this->assertFalse($invoice->canView(), 'guest cannot view');
+
+        $this->logInAs($stranger);
+        $this->assertFalse($invoice->canView(), 'non-owner cannot view');
+
+        $this->logInAs($owner);
+        $this->assertTrue($invoice->canView(), 'order owner can view');
+
+        $this->logInWithPermission('CMS_ACCESS');
+        $this->assertTrue($invoice->canView(), 'staff can view');
     }
 
     public function testInvoiceIsImmutable(): void

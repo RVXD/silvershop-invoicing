@@ -6,7 +6,6 @@ use SilverStripe\Control\Controller;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\Security\Permission;
 use SilverStripe\Security\Security;
 
 /**
@@ -32,7 +31,8 @@ class ShopDocumentController extends Controller
     {
         parent::init();
 
-        if (!Permission::check('CMS_ACCESS')) {
+        // Guests are sent to login; per-document canView() then allows staff or the order's owner.
+        if (!Security::getCurrentUser()) {
             Security::permissionFailure($this);
         }
     }

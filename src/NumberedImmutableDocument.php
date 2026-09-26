@@ -14,6 +14,7 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\Security\Member;
+use SilverStripe\Security\Permission;
 use SilverStripe\Security\Security;
 
 /**
@@ -103,6 +104,23 @@ trait NumberedImmutableDocument
     public function canCreate($member = null, $context = []): bool
     {
         return false;
+    }
+
+    /**
+     * Staff (CMS access) or the customer who placed the order may view the document. This gates the
+     * customer-facing PDF download in {@link ShopDocumentController}.
+     */
+    public function canView($member = null): bool
+    {
+        $member = $member ?: Security::getCurrentUser();
+
+        if (Permission::check('CMS_ACCESS', 'any', $member)) {
+            return true;
+        }
+
+        $order = $this->Order();
+
+        return (bool) ($order && $order->exists() && $member && (int) $order->MemberID === (int) $member->ID);
     }
 
     /**
