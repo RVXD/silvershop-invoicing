@@ -65,6 +65,12 @@ class ShopInvoice extends DataObject
     private static string $document_url_segment = 'invoice';
 
     /**
+     * Automatically issue a full invoice when a payment is captured. Set false for manual / partial
+     * invoicing (issue invoices yourself via InvoiceService::invoiceForItems()).
+     */
+    private static bool $auto_invoice_on_capture = true;
+
+    /**
      * Render the invoice through the theme cascade so a project can override
      * templates/SilverShop/Invoicing/Invoice.ss in app/ or its theme.
      */

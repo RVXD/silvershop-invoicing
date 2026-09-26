@@ -14,6 +14,13 @@ class PaymentInvoiceExtension extends Extension
     {
         $payment = $this->getOwner();
 
+        // Sites doing manual / partial invoicing can disable the automatic full invoice on capture:
+        //   SilverShop\Invoicing\ShopInvoice:
+        //     auto_invoice_on_capture: false
+        if (!ShopInvoice::config()->get('auto_invoice_on_capture')) {
+            return;
+        }
+
         if ($payment->Status === 'Captured' && $payment->OrderID) {
             InvoiceService::invoiceForPayment($payment);
         }
