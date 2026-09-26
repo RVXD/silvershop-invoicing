@@ -65,6 +65,24 @@ class ShopInvoiceTest extends SapphireTest
         $this->assertNotEquals($a->Number, $b->Number);
     }
 
+    public function testPerYearGapFreeNumbering(): void
+    {
+        $order = $this->objFromFixture(Order::class, 'order');
+        $year = date('Y');
+
+        $a = InvoiceService::invoiceForOrder($order);
+        $b = InvoiceService::invoiceForOrder($order);
+        $c = InvoiceService::invoiceForOrder($order);
+
+        // Format: INV-<year>-<zero-padded sequence>.
+        $this->assertMatchesRegularExpression('/^INV-' . $year . '-\d{5}$/', $a->Number);
+
+        // Gap-free: the trailing sequence increments by exactly 1 each time.
+        $seq = fn ($number) => (int) substr((string) $number, strrpos((string) $number, '-') + 1);
+        $this->assertSame($seq($a->Number) + 1, $seq($b->Number));
+        $this->assertSame($seq($b->Number) + 1, $seq($c->Number));
+    }
+
     public function testInvoiceIsImmutable(): void
     {
         $order = $this->objFromFixture(Order::class, 'order');

@@ -20,14 +20,26 @@ use SilverStripe\ORM\FieldType\DBField;
  */
 trait NumberedImmutableDocument
 {
+    /**
+     * Numbering scheme: 'year' → per-year series that resets each year (e.g. INV-2026-00001);
+     * 'continuous' → one ever-increasing series (e.g. INV-00001). Padding is the minimum digit
+     * width; start is the first number in each series.
+     */
+    private static string $number_series = 'year';
+
+    private static int $number_padding = 5;
+
+    private static int $number_start = 1;
+
     protected function onBeforeWrite(): void
     {
         if (!$this->isInDB()) {
-            if (!$this->Number) {
-                $this->Number = $this->generateNumber();
-            }
+            // Issue date first, so the number's year series matches it.
             if (!$this->Issued) {
                 $this->Issued = DBDatetime::now()->getValue();
+            }
+            if (!$this->Number) {
+                $this->Number = $this->generateNumber();
             }
         } elseif ($this->isChanged()) {
             throw new ValidationException(static::class . ' records are immutable once issued.');
@@ -36,12 +48,25 @@ trait NumberedImmutableDocument
         parent::onBeforeWrite();
     }
 
+    /**
+     * Gap-free, concurrency-safe number: reserved atomically from a per-series counter
+     * ({@link DocumentNumberSequence}) inside the document's write transaction.
+     */
     protected function generateNumber(): string
     {
         $prefix = (string) $this->config()->get('number_prefix');
-        $next = (int) static::get()->count() + 1;
+        $padding = max(1, (int) $this->config()->get('number_padding'));
+        $start = max(1, (int) $this->config()->get('number_start'));
+        $yearly = $this->config()->get('number_series') !== 'continuous';
 
-        return $prefix . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
+        $issued = (string) $this->Issued ?: DBDatetime::now()->getValue();
+        $year = (int) date('Y', strtotime($issued));
+
+        $seriesKey = rtrim($prefix, '-') . ($yearly ? '-' . $year : '');
+        $next = DocumentNumberSequence::reserve($seriesKey, $start);
+        $sequence = str_pad((string) $next, $padding, '0', STR_PAD_LEFT);
+
+        return $yearly ? $prefix . $year . '-' . $sequence : $prefix . $sequence;
     }
 
     public function canEdit($member = null): bool

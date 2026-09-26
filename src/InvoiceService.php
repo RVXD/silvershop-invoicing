@@ -4,6 +4,7 @@ namespace SilverShop\Invoicing;
 
 use SilverShop\Model\Order;
 use SilverStripe\Omnipay\Model\Payment;
+use SilverStripe\ORM\DB;
 
 /**
  * Builds an immutable {@link ShopInvoice} (with its snapshot lines) from an order/payment.
@@ -33,16 +34,22 @@ class InvoiceService
 
     public static function invoiceForOrder(Order $order, ?Payment $payment = null): ShopInvoice
     {
-        $invoice = ShopInvoice::create();
-        $invoice->OrderID = $order->ID;
-        if ($payment) {
-            $invoice->PaymentID = $payment->ID;
-        }
-        $invoice->Total = (float) $order->Total();
-        $invoice->Currency = $order->Currency();
-        $invoice->write();
+        $invoice = null;
 
-        DocumentLineSnapshotter::snapshot($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID);
+        // One transaction: the number is reserved during write(); if the snapshot fails and rolls
+        // back, the reserved number is released rather than leaving a gap in the series.
+        DB::get_conn()->withTransaction(function () use (&$invoice, $order, $payment) {
+            $invoice = ShopInvoice::create();
+            $invoice->OrderID = $order->ID;
+            if ($payment) {
+                $invoice->PaymentID = $payment->ID;
+            }
+            $invoice->Total = (float) $order->Total();
+            $invoice->Currency = $order->Currency();
+            $invoice->write();
+
+            DocumentLineSnapshotter::snapshot($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID);
+        });
 
         return $invoice;
     }
