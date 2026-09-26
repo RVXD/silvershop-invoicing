@@ -251,7 +251,7 @@ trait NumberedImmutableDocument
                 ? _t(self::class . '.EMAIL_RESEND', 'Re-email to customer')
                 : _t(self::class . '.EMAIL_BUTTON', 'Email to customer');
             $actions->push(
-                (new CustomAction('emailToCustomer', $label))->setButtonIcon('email')
+                (new CustomAction('emailToCustomer', $label))->setButtonIcon('p-mail')
             );
         }
 
