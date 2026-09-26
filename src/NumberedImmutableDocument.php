@@ -155,8 +155,8 @@ trait NumberedImmutableDocument
     }
 
     /**
-     * Add Print (HTML) and PDF buttons to the detail-view bottom bar via
-     * lekoala/silverstripe-cms-actions. Both open in a new tab.
+     * Add a "Download PDF" button to the detail-view bottom bar via
+     * lekoala/silverstripe-cms-actions. Opens in a new tab.
      */
     public function getCMSActions()
     {
@@ -164,17 +164,11 @@ trait NumberedImmutableDocument
 
         $url = $this->DocumentURL();
         if ($url) {
-            $print = (new CustomLink('printDocument', _t(self::class . '.PRINT', 'Print'), $url))
-                ->setButtonIcon('print')
-                ->setNewWindow(true)
-                ->addExtraClass('btn-outline-primary');
-
             $pdf = (new CustomLink('downloadDocumentPdf', _t(self::class . '.PDF', 'Download PDF'), $url . '/pdf'))
                 ->setButtonIcon('down-circled')
                 ->setNewWindow(true)
                 ->addExtraClass('btn-primary');
 
-            $actions->push($print);
             $actions->push($pdf);
         }
 
