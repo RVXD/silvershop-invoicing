@@ -18,10 +18,10 @@
     .brand { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
     .brand small { display: block; font-size: 12px; font-weight: 400; color: #6b7280; margin-top: 3px; }
     td.head__right { text-align: right; }
-    .doc__title { font-size: 24px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #4f46e5; }
+    .doc__title { font-size: 24px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #1f2430; }
     .doc__ref { margin: 6px 0 0; color: #6b7280; font-size: 12px; }
-    .badge { display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; background: #e7f6f0; color: #059669; }
-    .badge--refund { background: #fbf0e3; color: #b45309; }
+    .badge { display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; background: #f0f1f3; color: #1f2430; border: 1px solid #d5d8de; }
+    .badge--refund { background: #f0f1f3; color: #1f2430; }
 
     /* Parties */
     table.parties { width: 100%; margin-bottom: 32px; }
