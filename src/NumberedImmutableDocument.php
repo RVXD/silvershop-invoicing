@@ -2,8 +2,10 @@
 
 namespace SilverShop\Invoicing;
 
+use SilverShop\ORM\FieldType\ShopCurrency;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\ORM\FieldType\DBField;
 
 /**
  * Shared behaviour for immutable, sequentially-numbered financial documents (invoice, credit memo):
@@ -50,5 +52,24 @@ trait NumberedImmutableDocument
     public function canCreate($member = null, $context = []): bool
     {
         return false;
+    }
+
+    /**
+     * Template helpers: split the snapshot lines into product lines (the itemised table) and
+     * adjustment lines (the totals block), with the item subtotal.
+     */
+    public function ItemLines()
+    {
+        return $this->Lines()->filter('Kind', 'Item');
+    }
+
+    public function ModifierLines()
+    {
+        return $this->Lines()->filter('Kind', 'Modifier');
+    }
+
+    public function Subtotal(): DBField
+    {
+        return DBField::create_field(ShopCurrency::class, (float) $this->ItemLines()->sum('Amount'));
     }
 }
