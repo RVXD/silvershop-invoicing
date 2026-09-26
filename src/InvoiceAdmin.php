@@ -4,6 +4,8 @@ namespace SilverShop\Invoicing;
 
 use SilverStripe\Admin\ModelAdmin;
 use SilverStripe\Forms\GridField\GridField;
+use SilverStripe\Forms\GridField\GridFieldConfig_RecordViewer;
+use SilverStripe\Forms\GridField\GridFieldExportButton;
 
 /**
  * Global, read-only view of every issued invoice — searchable by number, order reference and
@@ -30,7 +32,11 @@ class InvoiceAdmin extends ModelAdmin
 
         $grid = $form->Fields()->dataFieldByName($this->sanitiseClassName($this->modelClass));
         if ($grid instanceof GridField) {
-            $grid->getConfig()->addComponent(new DocumentsPrintButton());
+            // Invoices are immutable: view-only rows (no edit pencil), plus CSV export and combined PDF.
+            $config = GridFieldConfig_RecordViewer::create();
+            $config->addComponent(GridFieldExportButton::create('buttons-before-left'));
+            $config->addComponent(new DocumentsPrintButton());
+            $grid->setConfig($config);
             // Extension point: adjust the invoice grid (columns, buttons, config).
             $this->extend('updateDocumentsGridField', $grid);
         }
