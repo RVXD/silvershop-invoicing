@@ -1,0 +1,15 @@
+SilverShop\Model\Order:
+  order:
+    Status: Unpaid
+    Reference: INV-TEST-1
+    Total: 7
+
+SilverShop\Model\Modifiers\OrderModifier:
+  fee:
+    Order: =>SilverShop\Model\Order.order
+    Amount: 10
+    Type: Chargable
+  discount:
+    Order: =>SilverShop\Model\Order.order
+    Amount: 3
+    Type: Deductable

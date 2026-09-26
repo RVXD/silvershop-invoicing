@@ -1,0 +1,10 @@
+---
+Name: silvershop-invoicing
+---
+SilverShop\Model\Order:
+  extensions:
+    - SilverShop\Invoicing\OrderInvoiceExtension
+
+SilverStripe\Omnipay\Model\Payment:
+  extensions:
+    - SilverShop\Invoicing\PaymentInvoiceExtension
