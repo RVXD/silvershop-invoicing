@@ -3,10 +3,11 @@
 namespace SilverShop\Invoicing;
 
 use SilverStripe\Admin\ModelAdmin;
+use SilverStripe\Forms\GridField\GridField;
 
 /**
  * Global, read-only view of every issued credit memo. Filterable, Order/Customer columns, CSV export,
- * no import (credit memos are immutable and code-issued).
+ * no import (credit memos are immutable and code-issued). Adds a "Download all as PDF" button.
  */
 class CreditMemoAdmin extends ModelAdmin
 {
@@ -21,4 +22,16 @@ class CreditMemoAdmin extends ModelAdmin
     ];
 
     public $showImportForm = false;
+
+    public function getEditForm($id = null, $fields = null)
+    {
+        $form = parent::getEditForm($id, $fields);
+
+        $grid = $form->Fields()->dataFieldByName($this->sanitiseClassName($this->modelClass));
+        if ($grid instanceof GridField) {
+            $grid->getConfig()->addComponent(new DocumentsPrintButton());
+        }
+
+        return $form;
+    }
 }

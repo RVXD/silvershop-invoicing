@@ -31,6 +31,43 @@ class PdfRenderer
     }
 
     /**
+     * Render several documents into one PDF, each on its own page. Shares the first document's inline
+     * <style> and stitches each document's <body> with a page break between them.
+     *
+     * @param iterable<object> $documents objects with forTemplate() (ShopInvoice / ShopCreditMemo)
+     */
+    public static function combined(iterable $documents): string
+    {
+        $style = '';
+        $bodies = [];
+
+        foreach ($documents as $document) {
+            $html = (string) $document->forTemplate();
+            if ($style === '' && preg_match('/<style\b.*?<\/style>/is', $html, $styleMatch)) {
+                $style = $styleMatch[0];
+            }
+            if (preg_match('/<body\b[^>]*>(.*?)<\/body>/is', $html, $bodyMatch)) {
+                $bodies[] = $bodyMatch[1];
+            }
+        }
+
+        if (!$bodies) {
+            return self::pdf('<!DOCTYPE html><html><body></body></html>');
+        }
+
+        $last = count($bodies) - 1;
+        $inner = '';
+        foreach ($bodies as $i => $body) {
+            $break = $i < $last ? ' style="page-break-after:always"' : '';
+            $inner .= '<div' . $break . '>' . $body . '</div>';
+        }
+
+        $html = '<!DOCTYPE html><html><head><meta charset="utf-8">' . $style . '</head><body>' . $inner . '</body></html>';
+
+        return self::pdf($html);
+    }
+
+    /**
      * Configured paper size (SiteConfig → Invoicing), defaulting to A4.
      */
     protected static function paperSize(): string
