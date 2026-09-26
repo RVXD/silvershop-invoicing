@@ -8,3 +8,4 @@ SilverShop\Model\Order:
 SilverStripe\Omnipay\Model\Payment:
   extensions:
     - SilverShop\Invoicing\PaymentInvoiceExtension
+    - SilverShop\Invoicing\PaymentCreditMemoExtension

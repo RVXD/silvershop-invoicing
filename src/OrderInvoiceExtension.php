@@ -8,8 +8,8 @@ use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordViewer;
 
 /**
- * Applied to {@link \SilverShop\Model\Order}. Shows the order's issued invoices in a read-only
- * "Invoices" tab in the CMS.
+ * Applied to {@link \SilverShop\Model\Order}. Shows the order's issued invoices and credit memos in
+ * read-only "Invoices" and "Credit Memos" tabs in the CMS.
  */
 class OrderInvoiceExtension extends Extension
 {
@@ -24,6 +24,13 @@ class OrderInvoiceExtension extends Extension
             'ShopInvoices',
             'Invoices',
             ShopInvoice::get()->filter('OrderID', $order->ID),
+            GridFieldConfig_RecordViewer::create()
+        ));
+
+        $fields->addFieldToTab('Root.CreditMemos', GridField::create(
+            'ShopCreditMemos',
+            'Credit Memos',
+            ShopCreditMemo::get()->filter('OrderID', $order->ID),
             GridFieldConfig_RecordViewer::create()
         ));
     }

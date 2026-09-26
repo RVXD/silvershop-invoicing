@@ -42,41 +42,7 @@ class InvoiceService
         $invoice->Currency = $order->Currency();
         $invoice->write();
 
-        $sort = 0;
-
-        foreach ($order->Items() as $item) {
-            $line = ShopInvoiceLine::create();
-            $line->InvoiceID = $invoice->ID;
-            $line->Kind = 'Item';
-            $line->Title = $item->getTableTitle();
-            $line->Quantity = $item->Quantity;
-            $line->UnitAmount = (float) $item->UnitPrice();
-            $line->Amount = (float) $item->Total();
-            $line->OrderItemID = $item->ID;
-            $line->Sort = ++$sort;
-            $line->write();
-        }
-
-        foreach ($order->Modifiers()->sort('Sort') as $modifier) {
-            if ($modifier->Type === 'Ignored') {
-                continue; // e.g. the SubTotal marker — item lines already carry it
-            }
-
-            $amount = (float) $modifier->Amount;
-            if ($modifier->Type === 'Deductable') {
-                $amount = -$amount;
-            }
-
-            $line = ShopInvoiceLine::create();
-            $line->InvoiceID = $invoice->ID;
-            $line->Kind = 'Modifier';
-            $line->Title = $modifier->getTableTitle();
-            $line->Quantity = 1;
-            $line->Amount = $amount;
-            $line->OrderModifierID = $modifier->ID;
-            $line->Sort = ++$sort;
-            $line->write();
-        }
+        DocumentLineSnapshotter::snapshot($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID);
 
         return $invoice;
     }
