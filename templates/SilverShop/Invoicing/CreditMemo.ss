@@ -1,4 +1,5 @@
-<%-- Default credit-memo document. Override at the same path in your app or theme. --%>
+<%-- Default credit-memo document. Override at the same path in your app or theme.
+     Table-based layout so it renders identically in the browser and in dompdf (PDF). --%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,25 +10,31 @@
 </head>
 <body>
 <div class="doc">
-    <div class="doc__head">
-        <div class="brand">$SiteConfig.Title<small>Order $Order.Reference</small></div>
-        <div class="doc__title">
-            <h1>Credit Memo</h1>
-            <p class="doc__ref">$Number &middot; $Issued.Nice</p>
-            <span class="badge badge--refund">Refunded</span>
-        </div>
-    </div>
+    <table class="head">
+        <tr>
+            <td>
+                <div class="brand">$SiteConfig.Title<small>Order $Order.Reference</small></div>
+            </td>
+            <td class="head__right">
+                <div class="doc__title">Credit Memo</div>
+                <p class="doc__ref">$Number &middot; $Issued.Nice</p>
+                <span class="badge badge--refund">Refunded</span>
+            </td>
+        </tr>
+    </table>
 
-    <div class="parties">
-        <div>
-            <p class="party__label">Credited to</p>
-            <p class="party__body"><% if $Order.BillingAddress %>$Order.BillingAddress<br /><% else %>$Order.Name<br /><% end_if %>$Order.LatestEmail</p>
-        </div>
-        <div>
-            <% if $Invoice %><p class="party__label">Against invoice</p><p class="party__body">$Invoice.Number</p><% end_if %>
-            <% if $Reason %><p class="party__note">$Reason</p><% end_if %>
-        </div>
-    </div>
+    <table class="parties">
+        <tr>
+            <td>
+                <p class="party__label">Credited to</p>
+                <p class="party__body"><% if $Order.BillingAddress %>$Order.BillingAddress<br /><% else %>$Order.Name<br /><% end_if %>$Order.LatestEmail</p>
+            </td>
+            <td>
+                <% if $Invoice %><p class="party__label">Against invoice</p><p class="party__body">$Invoice.Number</p><% end_if %>
+                <% if $Reason %><p class="party__note">$Reason</p><% end_if %>
+            </td>
+        </tr>
+    </table>
 
     <table class="lines">
         <thead>
@@ -50,18 +57,27 @@
         </tbody>
     </table>
 
-    <div class="totals">
-        <div class="totals__row"><span>Subtotal</span><span>$Subtotal.Nice</span></div>
-        <% loop $ModifierLines %>
-            <div class="totals__row"><span>$Title</span><span>$Amount.Nice</span></div>
-        <% end_loop %>
-        <div class="totals__row grand"><span>Refunded</span><span>$Total.Nice</span></div>
-    </div>
+    <table class="totals-wrap">
+        <tr>
+            <td class="totals-spacer"></td>
+            <td class="totals-cell">
+                <table class="totals">
+                    <tr><td>Subtotal</td><td class="num">$Subtotal.Nice</td></tr>
+                    <% loop $ModifierLines %>
+                        <tr><td>$Title</td><td class="num">$Amount.Nice</td></tr>
+                    <% end_loop %>
+                    <tr class="grand"><td>Refunded</td><td class="num">$Total.Nice</td></tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-    <div class="doc__foot">
-        <span>Credit memo for order $Order.Reference.</span>
-        <% if $Payment %><span>Refunded via $Payment.Gateway</span><% end_if %>
-    </div>
+    <table class="foot">
+        <tr>
+            <td>Credit memo for order $Order.Reference.</td>
+            <td class="foot__right"><% if $Payment %>Refunded via $Payment.Gateway<% end_if %></td>
+        </tr>
+    </table>
 </div>
 </body>
 </html>

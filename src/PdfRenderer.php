@@ -17,6 +17,9 @@ class PdfRenderer
         $options = new Options();
         $options->set('isRemoteEnabled', false);
         $options->set('defaultFont', 'Helvetica');
+        // Render print styles (ignore any @media screen chrome) and parse HTML5.
+        $options->set('defaultMediaType', 'print');
+        $options->set('isHtml5ParserEnabled', true);
 
         $dompdf = new Dompdf($options);
         $dompdf->setPaper('A4');

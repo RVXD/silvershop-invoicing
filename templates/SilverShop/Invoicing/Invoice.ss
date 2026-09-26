@@ -1,5 +1,6 @@
 <%-- Default invoice document. Override by placing a file at the same path in your app or theme:
-     app/templates/SilverShop/Invoicing/Invoice.ss (or themes/<theme>/templates/...). --%>
+     app/templates/SilverShop/Invoicing/Invoice.ss (or themes/<theme>/templates/...).
+     Table-based layout so it renders identically in the browser and in dompdf (PDF). --%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,27 +11,33 @@
 </head>
 <body>
 <div class="doc">
-    <div class="doc__head">
-        <div class="brand">$SiteConfig.Title<small>Order $Order.Reference</small></div>
-        <div class="doc__title">
-            <h1>Invoice</h1>
-            <p class="doc__ref">$Number &middot; $Issued.Nice</p>
-            <span class="badge">Paid</span>
-        </div>
-    </div>
+    <table class="head">
+        <tr>
+            <td>
+                <div class="brand">$SiteConfig.Title<small>Order $Order.Reference</small></div>
+            </td>
+            <td class="head__right">
+                <div class="doc__title">Invoice</div>
+                <p class="doc__ref">$Number &middot; $Issued.Nice</p>
+                <span class="badge">Paid</span>
+            </td>
+        </tr>
+    </table>
 
-    <div class="parties">
-        <div>
-            <p class="party__label">Billed to</p>
-            <p class="party__body"><% if $Order.BillingAddress %>$Order.BillingAddress<br /><% else %>$Order.Name<br /><% end_if %>$Order.LatestEmail</p>
-        </div>
-        <% if $Order.ShippingAddress %>
-            <div>
-                <p class="party__label">Shipped to</p>
-                <p class="party__body">$Order.ShippingAddress</p>
-            </div>
-        <% end_if %>
-    </div>
+    <table class="parties">
+        <tr>
+            <td>
+                <p class="party__label">Billed to</p>
+                <p class="party__body"><% if $Order.BillingAddress %>$Order.BillingAddress<br /><% else %>$Order.Name<br /><% end_if %>$Order.LatestEmail</p>
+            </td>
+            <td>
+                <% if $Order.ShippingAddress %>
+                    <p class="party__label">Shipped to</p>
+                    <p class="party__body">$Order.ShippingAddress</p>
+                <% end_if %>
+            </td>
+        </tr>
+    </table>
 
     <table class="lines">
         <thead>
@@ -53,18 +60,27 @@
         </tbody>
     </table>
 
-    <div class="totals">
-        <div class="totals__row"><span>Subtotal</span><span>$Subtotal.Nice</span></div>
-        <% loop $ModifierLines %>
-            <div class="totals__row"><span>$Title</span><span>$Amount.Nice</span></div>
-        <% end_loop %>
-        <div class="totals__row grand"><span>Total</span><span>$Total.Nice</span></div>
-    </div>
+    <table class="totals-wrap">
+        <tr>
+            <td class="totals-spacer"></td>
+            <td class="totals-cell">
+                <table class="totals">
+                    <tr><td>Subtotal</td><td class="num">$Subtotal.Nice</td></tr>
+                    <% loop $ModifierLines %>
+                        <tr><td>$Title</td><td class="num">$Amount.Nice</td></tr>
+                    <% end_loop %>
+                    <tr class="grand"><td>Total</td><td class="num">$Total.Nice</td></tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-    <div class="doc__foot">
-        <span>Thank you for your business.</span>
-        <% if $Payment %><span>Paid via $Payment.Gateway</span><% end_if %>
-    </div>
+    <table class="foot">
+        <tr>
+            <td>Thank you for your business.</td>
+            <td class="foot__right"><% if $Payment %>Paid via $Payment.Gateway<% end_if %></td>
+        </tr>
+    </table>
 </div>
 </body>
 </html>

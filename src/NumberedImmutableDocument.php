@@ -8,6 +8,7 @@ use SilverStripe\Control\Director;
 use SilverStripe\Core\Convert;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Forms\LiteralField;
+use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\FieldType\DBField;
 
@@ -59,6 +60,21 @@ trait NumberedImmutableDocument
     }
 
     /**
+     * Human-readable title (used in CMS breadcrumbs, dropdowns, etc.) — the document number plus the
+     * customer, instead of the default "#<id>".
+     */
+    public function getTitle(): string
+    {
+        $number = (string) $this->Number;
+        $order = $this->Order();
+        if ($number && $order && $order->exists() && $order->Name) {
+            return $number . ' — ' . $order->Name;
+        }
+
+        return $number;
+    }
+
+    /**
      * Template helpers: split the snapshot lines into product lines (the itemised table) and
      * adjustment lines (the totals block), with the item subtotal.
      */
@@ -100,6 +116,24 @@ trait NumberedImmutableDocument
     {
         $fields = parent::getCMSFields();
 
+        // Show who/what the document is for, next to the order relation.
+        $order = $this->Order();
+        if ($order && $order->exists()) {
+            $summary = [
+                ReadonlyField::create('SummaryCustomer', 'Customer', $order->Name),
+                ReadonlyField::create('SummaryEmail', 'Email', $order->LatestEmail),
+                ReadonlyField::create('SummaryOrderStatus', 'Order status', $order->Status),
+            ];
+            if ($fields->dataFieldByName('Order')) {
+                foreach ($summary as $field) {
+                    $fields->insertBefore('Order', $field);
+                }
+            } else {
+                $fields->addFieldsToTab('Root.Main', $summary);
+            }
+        }
+
+        // Preview tab: embed the real rendered PDF (not the HTML), so it matches the download exactly.
         $url = $this->DocumentURL();
         if ($url) {
             $fields->addFieldToTab(
@@ -108,9 +142,8 @@ trait NumberedImmutableDocument
                     'DocumentPreview',
                     sprintf(
                         '<div class="invoicing-preview" style="margin-top:12px">'
-                        . '<iframe src="%s" title="%s" loading="lazy" style="width:100%%;'
-                        . 'height:78vh;border:1px solid rgba(0,0,0,.12);border-radius:6px;'
-                        . 'background:#fff"></iframe></div>',
+                        . '<iframe src="%s/pdf" title="%s" style="width:100%%;height:80vh;'
+                        . 'border:1px solid rgba(0,0,0,.12);border-radius:6px;background:#fff"></iframe></div>',
                         Convert::raw2att($url),
                         Convert::raw2att((string) $this->Number)
                     )

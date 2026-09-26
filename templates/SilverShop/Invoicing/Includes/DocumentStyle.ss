@@ -1,44 +1,55 @@
-<%-- Shared document styling for invoices and credit memos. Override at the same path to restyle both. --%>
+<%-- Shared document styling for invoices and credit memos. Override at the same path to restyle both.
+     Table-based, flat layout: renders identically in the browser and in dompdf (no flexbox / grid). --%>
 <style>
-    :root {
-        --ink: #1f2430; --muted: #6b7280; --line: #e7e9ee; --soft: #f5f6f8;
-        --accent: #4f46e5; --ok: #059669; --refund: #b45309;
-    }
     * { box-sizing: border-box; }
     body {
-        margin: 0; background: #eef0f4; color: var(--ink);
-        font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums;
+        margin: 0; background: #fff; color: #1f2430;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums;
     }
-    .doc {
-        max-width: 820px; margin: 32px auto; background: #fff; padding: 56px 60px;
-        border-radius: 14px; box-shadow: 0 1px 3px rgba(20, 24, 40, .08), 0 12px 32px rgba(20, 24, 40, .05);
-    }
-    .doc__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 44px; }
+    .doc { max-width: 800px; margin: 0 auto; padding: 40px; }
+
+    table { border-collapse: collapse; }
+    .num { text-align: right; white-space: nowrap; }
+
+    /* Header: brand left, document title right */
+    table.head { width: 100%; margin-bottom: 34px; }
+    table.head td { vertical-align: top; }
     .brand { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
-    .brand small { display: block; font-size: 13px; font-weight: 400; color: var(--muted); margin-top: 4px; }
-    .doc__title { text-align: right; }
-    .doc__title h1 { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
-    .doc__ref { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
-    .badge { display: inline-block; margin-top: 12px; padding: 4px 13px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; background: rgba(5, 150, 105, .1); color: var(--ok); }
-    .badge--refund { background: rgba(180, 83, 9, .1); color: var(--refund); }
-    .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 40px; }
-    .party__label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+    .brand small { display: block; font-size: 12px; font-weight: 400; color: #6b7280; margin-top: 3px; }
+    td.head__right { text-align: right; }
+    .doc__title { font-size: 24px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #4f46e5; }
+    .doc__ref { margin: 6px 0 0; color: #6b7280; font-size: 12px; }
+    .badge { display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; background: #e7f6f0; color: #059669; }
+    .badge--refund { background: #fbf0e3; color: #b45309; }
+
+    /* Parties */
+    table.parties { width: 100%; margin-bottom: 32px; }
+    table.parties td { vertical-align: top; width: 50%; padding-right: 24px; }
+    .party__label { font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #6b7280; margin: 0 0 6px; }
     .party__body { margin: 0; line-height: 1.6; }
-    .party__note { margin: 14px 0 0; color: var(--muted); font-size: 13px; }
-    table.lines { width: 100%; border-collapse: collapse; }
-    table.lines thead th { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 0 0 12px; border-bottom: 2px solid var(--line); }
-    table.lines th.num, table.lines td.num { text-align: right; white-space: nowrap; }
-    table.lines tbody td { padding: 15px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-    table.lines .desc { font-weight: 500; }
-    .totals { width: 300px; margin: 24px 0 0 auto; }
-    .totals__row { display: flex; justify-content: space-between; padding: 9px 0; color: var(--muted); }
-    .totals__row span:last-child { color: var(--ink); }
-    .totals__row.grand { margin-top: 6px; padding: 16px 0 0; border-top: 2px solid var(--ink); font-size: 19px; font-weight: 700; }
-    .doc__foot { display: flex; justify-content: space-between; gap: 16px; margin-top: 52px; padding-top: 22px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-    @media print {
-        body { background: #fff; }
-        .doc { margin: 0; max-width: none; border-radius: 0; box-shadow: none; padding: 0; }
-        @page { margin: 18mm; }
-    }
+    .party__note { margin: 12px 0 0; color: #6b7280; font-size: 12px; }
+
+    /* Line items */
+    table.lines { width: 100%; }
+    table.lines thead th { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #6b7280; text-align: left; padding: 0 0 10px; border-bottom: 2px solid #e7e9ee; }
+    table.lines thead th.num { text-align: right; }
+    table.lines tbody td { padding: 12px 0; border-bottom: 1px solid #e7e9ee; vertical-align: top; }
+    td.desc { font-weight: 600; padding-right: 16px; }
+
+    /* Totals: right-aligned via a two-cell wrapper (dompdf-safe) */
+    table.totals-wrap { width: 100%; margin-top: 18px; }
+    table.totals-wrap td.totals-spacer { width: 58%; }
+    table.totals-wrap td.totals-cell { width: 42%; }
+    table.totals { width: 100%; }
+    table.totals td { padding: 7px 0; color: #6b7280; }
+    table.totals td.num { color: #1f2430; }
+    table.totals tr.grand td { border-top: 2px solid #1f2430; padding-top: 14px; font-size: 17px; font-weight: 700; color: #1f2430; }
+
+    /* Footer */
+    table.foot { width: 100%; margin-top: 40px; border-top: 1px solid #e7e9ee; }
+    table.foot td { padding-top: 18px; color: #6b7280; font-size: 12px; vertical-align: top; }
+    td.foot__right { text-align: right; }
+
+    @page { margin: 18mm; }
 </style>
