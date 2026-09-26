@@ -4,6 +4,12 @@ Name: silvershop-invoicing
 SilverShop\Model\Order:
   extensions:
     - SilverShop\Invoicing\OrderInvoiceExtension
+    - SilverShop\Invoicing\OrderNumberingExtension
+  # Optional per-year, gap-free order references (ORD-2026-00001). Off by default; enable in project config.
+  order_numbering_enabled: false
+  order_number_prefix: 'ORD-'
+  order_number_series: 'year'
+  order_number_padding: 5
 
 SilverStripe\Omnipay\Model\Payment:
   extensions:
