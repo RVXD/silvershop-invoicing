@@ -7,7 +7,6 @@ use SilverStripe\Core\Extension;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\GridField\GridField;
 use SilverStripe\Forms\GridField\GridFieldConfig_RecordViewer;
-use SilverStripe\Forms\HeaderField;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\NumericField;
 
@@ -41,8 +40,6 @@ class OrderInvoiceExtension extends Extension
         // Partial invoicing: quantity inputs for whatever is still to invoice.
         $remaining = InvoiceService::remainingQuantities($order);
         if ($remaining) {
-            $fields->addFieldToTab('Root.Invoices', HeaderField::create('CreateInvoiceHeader', 'Create an invoice', 3));
-
             foreach ($order->Items() as $item) {
                 if (!isset($remaining[$item->ID])) {
                     continue;
