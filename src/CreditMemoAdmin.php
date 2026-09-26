@@ -30,6 +30,8 @@ class CreditMemoAdmin extends ModelAdmin
         $grid = $form->Fields()->dataFieldByName($this->sanitiseClassName($this->modelClass));
         if ($grid instanceof GridField) {
             $grid->getConfig()->addComponent(new DocumentsPrintButton());
+            // Extension point: adjust the credit-memo grid (columns, buttons, config).
+            $this->extend('updateDocumentsGridField', $grid);
         }
 
         return $form;

@@ -224,6 +224,9 @@ trait NumberedImmutableDocument
             );
         }
 
+        // Extension point: modify the final field list (after this module's own additions).
+        $this->extend('updateDocumentCMSFields', $fields);
+
         return $fields;
     }
 
@@ -254,6 +257,9 @@ trait NumberedImmutableDocument
                 (new CustomAction('emailToCustomer', $label))->setButtonIcon('p-mail')
             );
         }
+
+        // Extension point: add/remove/relabel the document's action buttons.
+        $this->extend('updateDocumentCMSActions', $actions);
 
         return $actions;
     }
