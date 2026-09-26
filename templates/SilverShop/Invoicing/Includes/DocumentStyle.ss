@@ -17,6 +17,9 @@
     table.head td { vertical-align: top; }
     .brand { font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
     .brand small { display: block; font-size: 12px; font-weight: 400; color: #6b7280; margin-top: 3px; }
+    .brand__logo { display: block; max-height: 64px; max-width: 260px; margin-bottom: 10px; }
+    .brand__addr { margin: 6px 0 0; color: #6b7280; font-size: 12px; line-height: 1.5; }
+    .brand__meta { margin: 3px 0 0; color: #6b7280; font-size: 12px; }
     td.head__right { text-align: right; }
     .doc__title { font-size: 24px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #1f2430; }
     .doc__ref { margin: 6px 0 0; color: #6b7280; font-size: 12px; }

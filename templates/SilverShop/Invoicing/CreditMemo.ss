@@ -13,11 +13,16 @@
     <table class="head">
         <tr>
             <td>
-                <div class="brand">$SiteConfig.Title<small>Order $Order.Reference</small></div>
+                $SiteConfig.InvoiceLogoImageTag
+                <div class="brand">$SiteConfig.InvoiceSellerNameOrDefault</div>
+                <% if $SiteConfig.InvoiceSellerAddress %><p class="brand__addr">$SiteConfig.InvoiceSellerAddressHTML</p><% end_if %>
+                <% if $SiteConfig.InvoiceVatNumber %><p class="brand__meta">VAT $SiteConfig.InvoiceVatNumber</p><% end_if %>
+                <% if $SiteConfig.InvoiceRegistrationNumber %><p class="brand__meta">Reg. $SiteConfig.InvoiceRegistrationNumber</p><% end_if %>
             </td>
             <td class="head__right">
                 <div class="doc__title">Credit Memo</div>
                 <p class="doc__ref">$Number &middot; $Issued.Nice</p>
+                <p class="doc__ref">Order $Order.Reference</p>
                 <span class="badge badge--refund">Refunded</span>
             </td>
         </tr>
@@ -74,7 +79,7 @@
 
     <table class="foot">
         <tr>
-            <td>Credit memo for order $Order.Reference.</td>
+            <td><% if $SiteConfig.InvoiceFooterText %>$SiteConfig.InvoiceFooterTextHTML<% else %>Credit memo for order $Order.Reference.<% end_if %></td>
             <td class="foot__right"><% if $Payment %>Refunded via $Payment.Gateway<% end_if %></td>
         </tr>
     </table>

@@ -9,3 +9,7 @@ SilverStripe\Omnipay\Model\Payment:
   extensions:
     - SilverShop\Invoicing\PaymentInvoiceExtension
     - SilverShop\Invoicing\PaymentCreditMemoExtension
+
+SilverStripe\SiteConfig\SiteConfig:
+  extensions:
+    - SilverShop\Invoicing\InvoiceSettingsExtension
