@@ -91,6 +91,13 @@ class DocumentLineSnapshotter
                 continue; // e.g. the SubTotal marker — item lines already carry it
             }
 
+            // Respect each modifier's own visibility contract — a discount/tax/shipping modifier that
+            // has no effect hides itself (e.g. OrderDiscountModifier::ShowInTable() = Amount > 0), just as
+            // SilverShop's cart/order templates gate on <% if $ShowInTable %>. Avoids "$0.00 Discount" rows.
+            if ($modifier->hasMethod('ShowInTable') && !$modifier->ShowInTable()) {
+                continue;
+            }
+
             $amount = (float) $modifier->Amount;
             if ($modifier->Type === 'Deductable') {
                 $amount = -$amount;

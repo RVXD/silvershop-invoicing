@@ -10,6 +10,21 @@ use SilverShop\Model\Order;
 use SilverShop\Page\Product;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Dev\SapphireTest;
+use SilverStripe\Dev\TestOnly;
+
+/**
+ * A modifier that hides itself from the order table (as a zero-value discount does via
+ * OrderDiscountModifier::ShowInTable() = Amount > 0). Used to prove such lines aren't snapshotted.
+ */
+class HiddenTestModifier extends OrderModifier implements TestOnly
+{
+    private static string $table_name = 'HiddenTestModifier';
+
+    public function ShowInTable(): bool
+    {
+        return false;
+    }
+}
 
 /**
  * Covers partial / multiple invoicing: invoicing a subset of item quantities, quantity tracking across
@@ -18,6 +33,8 @@ use SilverStripe\Dev\SapphireTest;
 class ShopPartialInvoiceTest extends SapphireTest
 {
     protected $usesDatabase = true;
+
+    protected static $extra_dataobjects = [HiddenTestModifier::class];
 
     public function testPartialThenCompletingInvoice(): void
     {
@@ -138,5 +155,40 @@ class ShopPartialInvoiceTest extends SapphireTest
         // Idempotent: an already-credited invoice cannot be cancelled again.
         $this->assertFalse($invoice->canBeCancelled());
         $this->assertNull(CreditMemoService::creditMemoForInvoice($invoice));
+    }
+
+    public function testHiddenModifierIsNotSnapshotted(): void
+    {
+        $product = Product::create();
+        $product->Title = 'Widget';
+        $product->BasePrice = 10;
+        $product->write();
+        $product->publishRecursive();
+
+        $order = Order::create();
+        $order->write();
+        $item = $product->createItem(1);
+        $item->write();
+        $order->Items()->add($item);
+
+        // A modifier the order itself would hide (e.g. a zero-value discount) must not become a line.
+        $hidden = HiddenTestModifier::create();
+        $hidden->OrderID = $order->ID;
+        $hidden->Amount = 0;
+        $hidden->Type = 'Deductable';
+        $hidden->write();
+
+        // A real charge still lands on the invoice.
+        $charge = OrderModifier::create();
+        $charge->OrderID = $order->ID;
+        $charge->Amount = 4;
+        $charge->Type = 'Chargable';
+        $charge->write();
+
+        // Full (completing) invoice → modifiers snapshotted; the hidden zero-value one must be skipped.
+        $invoice = InvoiceService::invoiceForItems($order, [$item->ID => 1]);
+        $this->assertCount(2, $invoice->Lines()); // item + the $4 charge only, no hidden discount line
+        $this->assertSame(0, (int) $invoice->Lines()->filter('OrderModifierID', $hidden->ID)->count());
+        $this->assertEqualsWithDelta(14, (float) $invoice->Total, 0.001);
     }
 }
