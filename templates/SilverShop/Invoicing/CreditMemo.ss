@@ -73,6 +73,9 @@
                         <tr><td>$Title</td><td class="num">$Amount.Nice</td></tr>
                     <% end_loop %>
                     <tr class="grand"><td>Refunded</td><td class="num">$Total.Nice</td></tr>
+                    <% loop $TaxLines %>
+                        <tr class="tax-memo"><td>Includes $Title</td><td class="num">$Amount.Nice</td></tr>
+                    <% end_loop %>
                 </table>
             </td>
         </tr>

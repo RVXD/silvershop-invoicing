@@ -26,7 +26,7 @@ class ShopInvoiceLine extends DataObject
     private static string $table_name = 'ShopInvoiceLine';
 
     private static array $db = [
-        'Kind' => "Enum('Item,Modifier','Item')",
+        'Kind' => "Enum('Item,Modifier,Tax','Item')",
         'Title' => 'Varchar(255)',
         'SKU' => 'Varchar(100)',
         'Quantity' => 'Decimal(12,2)',
@@ -94,7 +94,8 @@ class ShopInvoiceLine extends DataObject
             return;
         }
 
-        $total = (float) $invoice->Lines()->sum('Amount');
+        // Tax lines are informational (inclusive VAT already sits in the item prices) — never in the total.
+        $total = (float) $invoice->Lines()->exclude('Kind', 'Tax')->sum('Amount');
         if (abs((float) $invoice->Total - $total) > 0.00001) {
             $invoice->Total = $total;
             $invoice->write();

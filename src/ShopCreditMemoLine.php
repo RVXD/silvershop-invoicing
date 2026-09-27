@@ -22,7 +22,7 @@ class ShopCreditMemoLine extends DataObject
     private static string $table_name = 'ShopCreditMemoLine';
 
     private static array $db = [
-        'Kind' => "Enum('Item,Modifier','Item')",
+        'Kind' => "Enum('Item,Modifier,Tax','Item')",
         'Title' => 'Varchar(255)',
         'SKU' => 'Varchar(100)',
         'Quantity' => 'Decimal(12,2)',

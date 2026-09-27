@@ -52,6 +52,7 @@
     table.totals td { padding: 7px 0; color: #6b7280; }
     table.totals td.num { color: #1f2430; }
     table.totals tr.grand td { border-top: 2px solid #1f2430; padding-top: 14px; font-size: 17px; font-weight: 700; color: #1f2430; }
+    table.totals tr.tax-memo td { padding-top: 2px; padding-bottom: 0; font-size: 11px; color: #9098a5; }
 
     /* Footer */
     table.foot { width: 100%; margin-top: 40px; border-top: 1px solid #e7e9ee; }

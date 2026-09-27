@@ -192,6 +192,15 @@ trait NumberedImmutableDocument
         return $this->Lines()->filter('Kind', 'Modifier')->exclude('Amount', 0);
     }
 
+    /**
+     * Informational tax lines (e.g. VAT already included in the prices). Shown as a memo below the
+     * total — they never change it.
+     */
+    public function TaxLines()
+    {
+        return $this->Lines()->filter('Kind', 'Tax')->exclude('Amount', 0);
+    }
+
     public function Subtotal(): DBField
     {
         return DBField::create_field(ShopCurrency::class, (float) $this->ItemLines()->sum('Amount'));

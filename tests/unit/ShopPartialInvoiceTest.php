@@ -6,8 +6,10 @@ use SilverShop\Invoicing\CreditMemoService;
 use SilverShop\Invoicing\InvoiceService;
 use SilverShop\Invoicing\ShopInvoice;
 use SilverShop\Model\Modifiers\OrderModifier;
+use SilverShop\Model\Modifiers\Tax\FlatTax;
 use SilverShop\Model\Order;
 use SilverShop\Page\Product;
+use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Dev\TestOnly;
@@ -190,5 +192,41 @@ class ShopPartialInvoiceTest extends SapphireTest
         $this->assertCount(2, $invoice->Lines()); // item + the $4 charge only, no hidden discount line
         $this->assertSame(0, (int) $invoice->Lines()->filter('OrderModifierID', $hidden->ID)->count());
         $this->assertEqualsWithDelta(14, (float) $invoice->Total, 0.001);
+    }
+
+    public function testInclusiveTaxCapturedAsMemoLineExcludedFromTotal(): void
+    {
+        // VAT-inclusive: prices already contain the tax, so the modifier is Type 'Ignored' and must not
+        // change the total — but a compliant invoice still states it, as an informational Tax line.
+        Config::modify()->set(FlatTax::class, 'rate', 0.21);
+        Config::modify()->set(FlatTax::class, 'exclusive', false);
+        Config::modify()->merge(Order::class, 'modifiers', [FlatTax::class]);
+
+        $product = Product::create();
+        $product->Title = 'Widget';
+        $product->BasePrice = 100;
+        $product->write();
+        $product->publishRecursive();
+
+        $order = Order::create();
+        $order->write();
+        $item = $product->createItem(1);
+        $item->write();
+        $order->Items()->add($item);
+        $order->calculate();
+        $order->write();
+
+        $invoice = InvoiceService::invoiceForOrder($order);
+
+        // The tax is snapshotted as a Tax-kind line with a positive amount…
+        $taxLines = $invoice->Lines()->filter('Kind', 'Tax');
+        $this->assertCount(1, $taxLines);
+        $this->assertGreaterThan(0, (float) $taxLines->first()->Amount);
+        $this->assertSame(1, (int) $invoice->TaxLines()->count());
+
+        // …but it is excluded from the total: the gross stays 100 and the non-tax lines already sum to it.
+        $this->assertEqualsWithDelta(100, (float) $invoice->Total, 0.01);
+        $nonTax = (float) $invoice->Lines()->exclude('Kind', 'Tax')->sum('Amount');
+        $this->assertEqualsWithDelta((float) $invoice->Total, $nonTax, 0.01);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace SilverShop\Invoicing;
 
+use SilverShop\Model\Modifiers\Tax\Base as TaxBase;
 use SilverShop\Model\Order;
 
 /**
@@ -87,6 +88,27 @@ class DocumentLineSnapshotter
         int $sort = 0
     ): int {
         foreach ($order->Modifiers()->sort('Sort') as $modifier) {
+            // Inclusive tax (e.g. VAT-inclusive prices) is Type 'Ignored' — it does NOT change the total,
+            // but a compliant invoice must still state the tax. Capture it as an informational Tax line
+            // (excluded from the document total). Exclusive tax is 'Chargable' and falls through to a
+            // normal modifier line that does add to the total.
+            if ($modifier instanceof TaxBase && $modifier->Type === 'Ignored') {
+                $tax = (float) $modifier->Amount;
+                if (abs($tax) >= 0.005) {
+                    $line = $lineClass::create();
+                    $line->$parentField = $parentId;
+                    $line->Kind = 'Tax';
+                    $line->Title = $modifier->getTableTitle();
+                    $line->Quantity = 1;
+                    $line->Amount = $tax;
+                    $line->OrderModifierID = $modifier->ID;
+                    $line->Sort = ++$sort;
+                    $line->extend('updateSnapshotLine', $modifier, $order);
+                    $line->write();
+                }
+                continue;
+            }
+
             if ($modifier->Type === 'Ignored') {
                 continue; // e.g. the SubTotal marker — item lines already carry it
             }
