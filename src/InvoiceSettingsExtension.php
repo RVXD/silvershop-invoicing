@@ -46,7 +46,11 @@ class InvoiceSettingsExtension extends Extension
 
     public function updateCMSFields(FieldList $fields): void
     {
-        $fields->addFieldsToTab('Root.Invoicing', [
+        // Nest under SilverShop's central "Shop" settings tab (a sub-tab), falling back to a top-level
+        // tab if SilverShop's ShopConfigExtension hasn't added the Shop tab.
+        $tab = $fields->fieldByName('Root.Shop') ? 'Root.Shop.ShopTabs.Invoicing' : 'Root.Invoicing';
+
+        $fields->addFieldsToTab($tab, [
             DropdownField::create('InvoicePaperSize', 'PDF paper size', ['A4' => 'A4', 'Letter' => 'Letter (US)'])
                 ->setDescription('A4 is the European standard; Letter is US.'),
             UploadField::create('InvoiceLogo', 'Logo')

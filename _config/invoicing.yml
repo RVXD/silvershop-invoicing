@@ -1,5 +1,7 @@
 ---
 Name: silvershop-invoicing
+After:
+  - '#silvershop-extensions'
 ---
 SilverShop\Model\Order:
   extensions:
