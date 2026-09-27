@@ -6,6 +6,8 @@ use SilverShop\Model\Modifiers\OrderModifier;
 use SilverShop\Model\OrderItem;
 use SilverShop\ORM\FieldType\ShopCurrency;
 use SilverStripe\ORM\DataObject;
+use SilverStripe\ORM\FieldType\DBField;
+use SilverStripe\ORM\FieldType\DBHTMLText;
 
 /**
  * One snapshot line on a {@link ShopCreditMemo} — the refund counterpart of {@link ShopInvoiceLine}.
@@ -40,6 +42,19 @@ class ShopCreditMemoLine extends DataObject
     private static array $summary_fields = [
         'Title' => 'Description',
         'Quantity' => 'Qty',
-        'Amount.Nice' => 'Amount',
+        'NiceAmount' => 'Amount',
     ];
+
+    private static array $casting = [
+        'NiceAmount' => 'HTMLText',
+    ];
+
+    /**
+     * Amount via ShopCurrency::Nice(), which wraps negatives in <span class="negative">. Returned as
+     * HTMLText so the CMS GridField renders the markup instead of escaping it to visible raw tags.
+     */
+    public function getNiceAmount(): DBHTMLText
+    {
+        return DBField::create_field('HTMLText', $this->dbObject('Amount')->Nice());
+    }
 }
