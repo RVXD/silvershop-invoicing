@@ -46,16 +46,16 @@ class OrderInvoiceExtension extends Extension
                 }
                 $fields->addFieldToTab('Root.Invoices', NumericField::create('PartialQty_' . $item->ID, $item->getTableTitle())
                     ->setScale(0)
-                    ->setValue(0)
+                    ->setValue((float) $remaining[$item->ID])
                     ->setDescription('Remaining to invoice: ' . (float) $remaining[$item->ID]));
             }
 
             $fields->addFieldToTab('Root.Invoices', LiteralField::create('PartialInvoiceInfo', $this->infoNotice(
-                '<strong>Partial invoicing</strong> lets you issue an invoice for only part of this order — for '
-                . 'example when you ship some items now and the rest later. Enter how many of each remaining item to '
-                . 'invoice, then click <strong>Create partial invoice</strong> below. The remaining quantities stay '
-                . 'available to invoice later, and any tax or shipping is added to the invoice that completes the order. '
-                . 'Leave every quantity at 0 to invoice nothing.'
+                'The quantities above are pre-filled with everything still to invoice, so to invoice the '
+                . '<strong>whole order</strong> just click <strong>Create invoice</strong> below. To invoice only '
+                . '<strong>part</strong> of the order (e.g. you ship some items now and the rest later), lower the '
+                . 'quantities first; the remainder stays available to invoice later, and any tax or shipping is added '
+                . 'to the invoice that completes the order.'
             )));
         } else {
             $fields->addFieldToTab('Root.Invoices', LiteralField::create('FullyInvoicedNotice', $this->infoNotice(
@@ -82,7 +82,7 @@ class OrderInvoiceExtension extends Extension
         $order = $this->getOwner();
         if ($order->isInDB() && InvoiceService::remainingQuantities($order)) {
             $actions->push(
-                (new CustomAction('doCreatePartialInvoice', 'Create partial invoice'))->setButtonIcon('addpage')
+                (new CustomAction('doCreatePartialInvoice', 'Create invoice'))->setButtonIcon('addpage')
             );
         }
     }
