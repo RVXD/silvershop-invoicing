@@ -3,6 +3,7 @@
 namespace SilverShop\Invoicing;
 
 use SilverStripe\Core\Extension;
+use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * Applied to {@link \SilverStripe\Omnipay\Model\Payment}. When a payment is captured, issue an
@@ -14,10 +15,12 @@ class PaymentInvoiceExtension extends Extension
     {
         $payment = $this->getOwner();
 
-        // Sites doing manual / partial invoicing can disable the automatic full invoice on capture:
-        //   SilverShop\Invoicing\ShopInvoice:
-        //     auto_invoice_on_capture: false
+        // Both must allow it: the developer master switch (ShopInvoice.auto_invoice_on_capture, YAML) and
+        // the merchant setting (SiteConfig → Shop → Invoicing → "Automatically create ... on capture").
         if (!ShopInvoice::config()->get('auto_invoice_on_capture')) {
+            return;
+        }
+        if (!SiteConfig::current_site_config()->InvoiceAutoOnCapture) {
             return;
         }
 

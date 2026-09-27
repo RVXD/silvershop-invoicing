@@ -35,6 +35,7 @@ class InvoiceSettingsExtension extends Extension
         'InvoiceRegistrationNumber' => 'Varchar(64)',
         'InvoiceFooterText' => 'Text',
         'InvoicePaperSize' => "Enum('A4,Letter','A4')",
+        'InvoiceAutoOnCapture' => 'Boolean(1)',
         'InvoiceEmailOnIssue' => 'Boolean',
     ];
 
@@ -63,6 +64,8 @@ class InvoiceSettingsExtension extends Extension
             TextField::create('InvoiceRegistrationNumber', 'Registration / company no.'),
             TextareaField::create('InvoiceFooterText', 'Document footer text')
                 ->setDescription('Payment terms / thank-you note printed at the bottom of every document.'),
+            CheckboxField::create('InvoiceAutoOnCapture', 'Automatically create and issue an invoice when a payment is captured')
+                ->setDescription('On: paid orders get a finalised invoice automatically. Off: staff create invoices manually (as drafts) from each order.'),
             CheckboxField::create('InvoiceEmailOnIssue', 'Email the invoice to the customer when it is issued')
                 ->setDescription('Automatically emails the PDF to the order email on capture. You can also email manually from each document.'),
         ]);
