@@ -25,6 +25,9 @@
     .doc__ref { margin: 6px 0 0; color: #6b7280; font-size: 12px; }
     .badge { display: inline-block; margin-top: 10px; padding: 4px 12px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; background: #f0f1f3; color: #1f2430; border: 1px solid #d5d8de; }
     .badge--refund { background: #f0f1f3; color: #1f2430; }
+    .badge--draft { background: #f0f1f3; color: #1f2430; }
+    .draft-banner { margin-bottom: 18px; padding: 8px 14px; border: 1px dashed #1f2430; border-radius: 6px; background: #f0f1f3; color: #1f2430; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .doc__note { margin-top: 22px; padding: 12px 14px; border-left: 3px solid #d5d8de; background: #f7f8fa; color: #1f2430; font-size: 12px; line-height: 1.55; }
 
     /* Parties */
     table.parties { width: 100%; margin-bottom: 32px; }

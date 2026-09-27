@@ -25,12 +25,17 @@ class ShopInvoice extends DataObject
     private static string $table_name = 'ShopInvoice';
 
     private static array $db = [
+        'Status' => "Enum('Draft,Issued','Issued')",
         'Number' => 'Varchar(30)',
         'Issued' => 'Datetime',
         'Total' => ShopCurrency::class,
         'Currency' => 'Varchar(3)',
+        'CustomerNote' => 'Text',
         'EmailSent' => 'Datetime',
     ];
+
+    // New invoices are Issued unless a service explicitly creates a draft (manual invoicing).
+    private static array $defaults = ['Status' => 'Issued'];
 
     private static array $has_one = [
         'Order' => Order::class,
@@ -48,6 +53,7 @@ class ShopInvoice extends DataObject
 
     private static array $summary_fields = [
         'Number' => 'Invoice',
+        'Status' => 'Status',
         'Issued.Nice' => 'Issued',
         'Order.Reference' => 'Order',
         'Order.Name' => 'Customer',

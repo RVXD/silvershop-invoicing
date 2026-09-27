@@ -27,13 +27,18 @@ class ShopCreditMemo extends DataObject
     private static string $table_name = 'ShopCreditMemo';
 
     private static array $db = [
+        'Status' => "Enum('Draft,Issued','Issued')",
         'Number' => 'Varchar(30)',
         'Issued' => 'Datetime',
         'Total' => ShopCurrency::class,
         'Currency' => 'Varchar(3)',
         'Reason' => 'Text',
+        'CustomerNote' => 'Text',
         'EmailSent' => 'Datetime',
     ];
+
+    // Credit memos are always issued directly (auto-created on refund).
+    private static array $defaults = ['Status' => 'Issued'];
 
     private static array $has_one = [
         'Order' => Order::class,

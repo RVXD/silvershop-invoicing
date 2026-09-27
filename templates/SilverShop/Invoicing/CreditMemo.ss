@@ -10,6 +10,7 @@
 </head>
 <body>
 <div class="doc">
+    <% if not $IsIssued %><div class="draft-banner">DRAFT — not yet issued. This is a preview and has no document number.</div><% end_if %>
     <table class="head">
         <tr>
             <td>
@@ -76,6 +77,8 @@
             </td>
         </tr>
     </table>
+
+    <% if $CustomerNote %><div class="doc__note">$CustomerNote</div><% end_if %>
 
     <table class="foot">
         <tr>

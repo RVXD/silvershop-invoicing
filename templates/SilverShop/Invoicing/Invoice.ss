@@ -11,6 +11,7 @@
 </head>
 <body>
 <div class="doc">
+    <% if not $IsIssued %><div class="draft-banner">DRAFT — not yet issued. This is a preview and has no invoice number.</div><% end_if %>
     <table class="head">
         <tr>
             <td>
@@ -22,9 +23,9 @@
             </td>
             <td class="head__right">
                 <div class="doc__title">Invoice</div>
-                <p class="doc__ref">$Number &middot; $Issued.Nice</p>
+                <p class="doc__ref"><% if $IsIssued %>$Number &middot; $Issued.Nice<% else %>Draft<% end_if %></p>
                 <p class="doc__ref">Order $Order.Reference</p>
-                <span class="badge">Paid</span>
+                <% if $IsIssued %><span class="badge">Paid</span><% else %><span class="badge badge--draft">Draft</span><% end_if %>
             </td>
         </tr>
     </table>
@@ -79,6 +80,8 @@
             </td>
         </tr>
     </table>
+
+    <% if $CustomerNote %><div class="doc__note">$CustomerNote</div><% end_if %>
 
     <table class="foot">
         <tr>

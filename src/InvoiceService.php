@@ -110,8 +110,12 @@ class InvoiceService
      *
      * @param array<int|string,float|int|string> $quantities
      */
-    public static function invoiceForItems(Order $order, array $quantities, ?Payment $payment = null): ?ShopInvoice
-    {
+    public static function invoiceForItems(
+        Order $order,
+        array $quantities,
+        ?Payment $payment = null,
+        bool $issue = false
+    ): ?ShopInvoice {
         $remaining = self::remainingQuantities($order);
 
         $toInvoice = [];
@@ -153,8 +157,10 @@ class InvoiceService
         }
 
         $invoice = null;
-        DB::get_conn()->withTransaction(function () use (&$invoice, $order, $payment, $toInvoice, $completing, $total) {
+        DB::get_conn()->withTransaction(function () use (&$invoice, $order, $payment, $toInvoice, $completing, $total, $issue) {
             $invoice = ShopInvoice::create();
+            // Manual invoices start as an editable draft (no number yet); $issue finalises immediately.
+            $invoice->Status = $issue ? 'Issued' : 'Draft';
             $invoice->OrderID = $order->ID;
             if ($payment) {
                 $invoice->PaymentID = $payment->ID;
@@ -176,7 +182,8 @@ class InvoiceService
             }
         });
 
-        if ($invoice && SiteConfig::current_site_config()->InvoiceEmailOnIssue) {
+        // Only issued invoices are emailed (a draft is not sent until finalised).
+        if ($invoice && $invoice->isIssued() && SiteConfig::current_site_config()->InvoiceEmailOnIssue) {
             DocumentEmailService::send($invoice);
         }
 

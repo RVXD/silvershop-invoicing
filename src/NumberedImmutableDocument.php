@@ -8,6 +8,9 @@ use SilverShop\ORM\FieldType\ShopCurrency;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Convert;
 use SilverStripe\Core\Validation\ValidationException;
+use SilverStripe\Forms\GridField\GridField;
+use SilverStripe\Forms\GridField\GridFieldAddExistingAutocompleter;
+use SilverStripe\Forms\GridField\GridFieldAddNewButton;
 use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\ORM\DataObject;
@@ -44,19 +47,43 @@ trait NumberedImmutableDocument
 
     protected function onBeforeWrite(): void
     {
-        if (!$this->isInDB()) {
-            // Issue date first, so the number's year series matches it.
+        // Assign the gap-free number + issue date only when the document becomes Issued — never for a
+        // draft, so a draft consumes no number and can be discarded without leaving a gap in the series.
+        if ($this->isIssued() && !$this->Number) {
             if (!$this->Issued) {
                 $this->Issued = DBDatetime::now()->getValue();
             }
-            if (!$this->Number) {
-                $this->Number = $this->generateNumber();
-            }
-        } elseif ($this->hasImmutableChanges()) {
+            $this->Number = $this->generateNumber();
+        }
+
+        // Freeze the document once issued (drafts stay fully editable). The issue transition is allowed.
+        $wasAlreadyIssued = $this->isInDB() && $this->isIssued() && !$this->isChanged('Status');
+        if ($wasAlreadyIssued && $this->hasImmutableChanges()) {
             throw new ValidationException(static::class . ' records are immutable once issued.');
         }
 
         parent::onBeforeWrite();
+    }
+
+    /**
+     * A finalised document (numbered, frozen). Drafts are editable and unnumbered until issued.
+     */
+    public function isIssued(): bool
+    {
+        return $this->Status === 'Issued';
+    }
+
+    /**
+     * Finalise a draft: assign the gap-free number + issue date and freeze it. No-op if already issued.
+     */
+    public function issue(): void
+    {
+        if ($this->isIssued()) {
+            return;
+        }
+
+        $this->Status = 'Issued';
+        $this->write();
     }
 
     /**
@@ -93,12 +120,14 @@ trait NumberedImmutableDocument
 
     public function canEdit($member = null): bool
     {
-        return false;
+        // Drafts are editable by staff; issued documents are frozen.
+        return !$this->isIssued() && Permission::check('CMS_ACCESS', 'any', $member);
     }
 
     public function canDelete($member = null): bool
     {
-        return false;
+        // Drafts can be discarded; issued documents are permanent (cancel via a credit memo instead).
+        return !$this->isIssued() && Permission::check('CMS_ACCESS', 'any', $member);
     }
 
     public function canCreate($member = null, $context = []): bool
@@ -129,9 +158,9 @@ trait NumberedImmutableDocument
      */
     public function getTitle(): string
     {
-        $number = (string) $this->Number;
+        $number = (string) $this->Number ?: 'Draft';
         $order = $this->Order();
-        if ($number && $order && $order->exists() && $order->Name) {
+        if ($order && $order->exists() && $order->Name) {
             return $number . ' — ' . $order->Name;
         }
 
@@ -242,6 +271,25 @@ trait NumberedImmutableDocument
             );
         }
 
+        // A draft is editable: keep the header/relation fields read-only (issue via the button, not by
+        // hand), let staff edit only the customer note and the line quantities.
+        foreach (['Status', 'Number', 'Issued', 'Total', 'Currency', 'EmailSent', 'Order', 'Payment'] as $name) {
+            if ($field = $fields->dataFieldByName($name)) {
+                $fields->makeFieldReadonly($field);
+            }
+        }
+        $fields->dataFieldByName('CustomerNote')?->setDescription(
+            'Optional note printed on the invoice (e.g. payment terms or a message). Editable while draft.'
+        );
+
+        // Level-2 editing: staff may change line quantities on a draft, but not add arbitrary lines.
+        $linesGrid = $fields->dataFieldByName('Lines');
+        if ($linesGrid instanceof GridField) {
+            $linesGrid->getConfig()
+                ->removeComponentsByType(GridFieldAddNewButton::class)
+                ->removeComponentsByType(GridFieldAddExistingAutocompleter::class);
+        }
+
         // Extension point: modify the final field list (after this module's own additions).
         $this->extend('updateDocumentCMSFields', $fields);
 
@@ -257,23 +305,47 @@ trait NumberedImmutableDocument
         $actions = parent::getCMSActions();
 
         $url = $this->DocumentURL();
-        if ($url) {
+        $order = $this->Order();
+        $hasRecipient = $order && $order->exists() && $order->LatestEmail;
+
+        if (!$this->isIssued()) {
+            // Draft: finalise it (optionally emailing), plus a draft PDF preview.
             $actions->push(
-                (new CustomLink('downloadDocumentPdf', _t(self::class . '.PDF', 'Download PDF'), $url . '/pdf'))
-                    ->setButtonIcon('down-circled')
-                    ->setNewWindow(true)
+                (new CustomAction('doIssue', _t(self::class . '.ISSUE', 'Issue invoice')))
+                    ->setButtonIcon('check-mark-circle')
                     ->addExtraClass('btn-primary')
             );
-        }
-
-        $order = $this->Order();
-        if ($order && $order->exists() && $order->LatestEmail) {
-            $label = $this->EmailSent
-                ? _t(self::class . '.EMAIL_RESEND', 'Re-email to customer')
-                : _t(self::class . '.EMAIL_BUTTON', 'Email to customer');
-            $actions->push(
-                (new CustomAction('emailToCustomer', $label))->setButtonIcon('p-mail')
-            );
+            if ($hasRecipient) {
+                $actions->push(
+                    (new CustomAction('doIssueAndEmail', _t(self::class . '.ISSUE_EMAIL', 'Issue & email customer')))
+                        ->setButtonIcon('p-mail')
+                );
+            }
+            if ($url) {
+                $actions->push(
+                    (new CustomLink('previewDraftPdf', _t(self::class . '.PREVIEW_PDF', 'Preview PDF'), $url . '/pdf'))
+                        ->setButtonIcon('down-circled')
+                        ->setNewWindow(true)
+                );
+            }
+        } else {
+            // Issued: download the PDF and (re-)email it.
+            if ($url) {
+                $actions->push(
+                    (new CustomLink('downloadDocumentPdf', _t(self::class . '.PDF', 'Download PDF'), $url . '/pdf'))
+                        ->setButtonIcon('down-circled')
+                        ->setNewWindow(true)
+                        ->addExtraClass('btn-primary')
+                );
+            }
+            if ($hasRecipient) {
+                $label = $this->EmailSent
+                    ? _t(self::class . '.EMAIL_RESEND', 'Re-email to customer')
+                    : _t(self::class . '.EMAIL_BUTTON', 'Email to customer');
+                $actions->push(
+                    (new CustomAction('emailToCustomer', $label))->setButtonIcon('p-mail')
+                );
+            }
         }
 
         // Extension point: add/remove/relabel the document's action buttons.
@@ -299,5 +371,42 @@ trait NumberedImmutableDocument
         }
 
         return _t(self::class . '.EMAIL_FAIL', 'The email could not be sent.');
+    }
+
+    /**
+     * cms-actions handler: finalise the draft (assign its number + freeze it).
+     */
+    public function doIssue($data = null, $form = null, $controller = null): string
+    {
+        if ($this->isIssued()) {
+            return _t(self::class . '.ALREADY_ISSUED', 'This document is already issued.');
+        }
+
+        $this->issue();
+
+        return _t(self::class . '.ISSUED_OK', 'Issued {number}.', ['number' => $this->Number]);
+    }
+
+    /**
+     * cms-actions handler: finalise the draft and email it to the customer.
+     */
+    public function doIssueAndEmail($data = null, $form = null, $controller = null): string
+    {
+        if (!$this->isIssued()) {
+            $this->issue();
+        }
+
+        $order = $this->Order();
+        $recipient = ($order && $order->exists()) ? (string) $order->LatestEmail : '';
+        if ($recipient && DocumentEmailService::send($this, Security::getCurrentUser())) {
+            return _t(self::class . '.ISSUED_EMAILED', 'Issued {number} and emailed it to {email}.', [
+                'number' => $this->Number,
+                'email' => $recipient,
+            ]);
+        }
+
+        return _t(self::class . '.ISSUED_NOEMAIL', 'Issued {number}, but the email could not be sent.', [
+            'number' => $this->Number,
+        ]);
     }
 }

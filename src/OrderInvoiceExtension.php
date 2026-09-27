@@ -113,7 +113,10 @@ class OrderInvoiceExtension extends Extension
             return _t(self::class . '.PARTIAL_FAIL', 'Nothing could be invoiced.');
         }
 
-        return _t(self::class . '.PARTIAL_OK', 'Created invoice {number}.', ['number' => $invoice->Number]);
+        return _t(
+            self::class . '.PARTIAL_OK',
+            'Created a draft invoice — open it (Invoices tab) to review and edit, then Issue it.'
+        );
     }
 
     /**

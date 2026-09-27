@@ -3,9 +3,11 @@
 namespace SilverShop\Invoicing\Tests;
 
 use SilverShop\Invoicing\InvoiceService;
+use SilverShop\Invoicing\ShopInvoice;
 use SilverShop\Model\Modifiers\OrderModifier;
 use SilverShop\Model\Order;
 use SilverShop\Page\Product;
+use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Dev\SapphireTest;
 
 /**
@@ -62,5 +64,47 @@ class ShopPartialInvoiceTest extends SapphireTest
 
         // Σ invoices reconciles: 20 + 34 = 54 = 5 × 10 + 4.
         $this->assertEqualsWithDelta(54, (float) $a->Total + (float) $b->Total, 0.001);
+    }
+
+    public function testDraftLifecycleAndLineEditing(): void
+    {
+        $this->logInWithPermission('CMS_ACCESS');
+
+        $product = Product::create();
+        $product->Title = 'Widget';
+        $product->BasePrice = 10;
+        $product->write();
+        $product->publishRecursive();
+
+        $order = Order::create();
+        $order->write();
+        $item = $product->createItem(4);
+        $item->write();
+        $order->Items()->add($item);
+
+        // Manual invoicing → an editable draft with no number.
+        $draft = InvoiceService::invoiceForItems($order, [$item->ID => 4]);
+        $this->assertNotNull($draft);
+        $this->assertFalse($draft->isIssued());
+        $this->assertEmpty($draft->Number);
+        $this->assertTrue($draft->canEdit());
+        $this->assertEqualsWithDelta(40, (float) $draft->Total, 0.001);
+
+        // Editing a draft line quantity recomputes the invoice total.
+        $line = $draft->ItemLines()->first();
+        $line->Quantity = 3;
+        $line->write();
+        $draft = ShopInvoice::get()->byID($draft->ID);
+        $this->assertEqualsWithDelta(30, (float) $draft->Total, 0.001);
+
+        // Issue → gap-free number assigned, then frozen.
+        $draft->issue();
+        $this->assertTrue($draft->isIssued());
+        $this->assertNotEmpty($draft->Number);
+        $this->assertFalse($draft->canEdit());
+
+        $draft->Total = 999;
+        $this->expectException(ValidationException::class);
+        $draft->write();
     }
 }
