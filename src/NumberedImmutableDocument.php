@@ -132,7 +132,8 @@ trait NumberedImmutableDocument
 
     public function canCreate($member = null, $context = []): bool
     {
-        return false;
+        // Staff can create a draft (from an order); it is finalised via the Issue action.
+        return Permission::check('CMS_ACCESS', 'any', $member);
     }
 
     /**
@@ -233,6 +234,18 @@ trait NumberedImmutableDocument
     {
         $fields = parent::getCMSFields();
 
+        // New (unsaved) draft: explain the Add-new flow. Lines are snapshotted on save (onAfterWrite).
+        if (!$this->isInDB()) {
+            $fields->addFieldToTab('Root.Main', LiteralField::create(
+                'NewDraftHint',
+                '<p class="message notice" style="display:flex;align-items:flex-start;gap:.5em">'
+                . '<span class="font-icon-info-circled" aria-hidden="true"></span><span>'
+                . 'Saving creates a <strong>draft</strong> invoice from the order&rsquo;s still-to-invoice items. '
+                . 'You can then adjust the line quantities, add a note, and <strong>Issue</strong> it.'
+                . '</span></p>'
+            ));
+        }
+
         // Show who/what the document is for, next to the order relation.
         $order = $this->Order();
         if ($order && $order->exists()) {
@@ -303,6 +316,11 @@ trait NumberedImmutableDocument
     public function getCMSActions()
     {
         $actions = parent::getCMSActions();
+
+        // A new (unsaved) record only needs the standard Create/Save button.
+        if (!$this->isInDB()) {
+            return $actions;
+        }
 
         $url = $this->DocumentURL();
         $order = $this->Order();

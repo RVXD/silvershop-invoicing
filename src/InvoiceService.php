@@ -41,6 +41,8 @@ class InvoiceService
         // back, the reserved number is released rather than leaving a gap in the series.
         DB::get_conn()->withTransaction(function () use (&$invoice, $order, $payment) {
             $invoice = ShopInvoice::create();
+            $invoice->skipLineSnapshot = true;
+            $invoice->Status = 'Issued'; // auto/full invoice — finalised immediately
             $invoice->OrderID = $order->ID;
             if ($payment) {
                 $invoice->PaymentID = $payment->ID;
@@ -159,6 +161,7 @@ class InvoiceService
         $invoice = null;
         DB::get_conn()->withTransaction(function () use (&$invoice, $order, $payment, $toInvoice, $completing, $total, $issue) {
             $invoice = ShopInvoice::create();
+            $invoice->skipLineSnapshot = true;
             // Manual invoices start as an editable draft (no number yet); $issue finalises immediately.
             $invoice->Status = $issue ? 'Issued' : 'Draft';
             $invoice->OrderID = $order->ID;

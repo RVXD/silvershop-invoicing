@@ -6,6 +6,7 @@ use SilverShop\Model\Order;
 use SilverShop\ORM\FieldType\ShopCurrency;
 use SilverStripe\Omnipay\Model\Payment;
 use SilverStripe\ORM\DataObject;
+use SilverStripe\ORM\DB;
 
 /**
  * An immutable financial document issued against an order: a numbered snapshot of the order's items
@@ -34,8 +35,8 @@ class ShopInvoice extends DataObject
         'EmailSent' => 'Datetime',
     ];
 
-    // New invoices are Issued unless a service explicitly creates a draft (manual invoicing).
-    private static array $defaults = ['Status' => 'Issued'];
+    // New invoices start as an editable draft (CMS "Create invoice"); the auto/service paths set Issued.
+    private static array $defaults = ['Status' => 'Draft'];
 
     private static array $has_one = [
         'Order' => Order::class,
@@ -75,6 +76,41 @@ class ShopInvoice extends DataObject
      * invoicing (issue invoices yourself via InvoiceService::invoiceForItems()).
      */
     private static bool $auto_invoice_on_capture = true;
+
+    /**
+     * Set by InvoiceService (which snapshots its own lines) to suppress the auto-snapshot below. A draft
+     * created through the CMS "Create invoice" add form has no lines yet, so it snapshots on first save.
+     */
+    public bool $skipLineSnapshot = false;
+
+    protected function onAfterWrite(): void
+    {
+        parent::onAfterWrite();
+
+        // First save of a CMS-created draft: snapshot the order's still-to-invoice lines into it.
+        if ($this->skipLineSnapshot || $this->isIssued() || !$this->OrderID || $this->Lines()->exists()) {
+            return;
+        }
+
+        $order = $this->Order();
+        if (!$order || !$order->exists()) {
+            return;
+        }
+
+        // Carry the order currency onto the draft (raw update — avoids re-entering onAfterWrite).
+        if (!$this->Currency) {
+            $this->Currency = $order->Currency();
+            DB::prepared_query('UPDATE "ShopInvoice" SET "Currency" = ? WHERE "ID" = ?', [(string) $this->Currency, $this->ID]);
+        }
+
+        $remaining = InvoiceService::remainingQuantities($order);
+        if (!$remaining) {
+            return;
+        }
+
+        $sort = DocumentLineSnapshotter::snapshotItems($order, ShopInvoiceLine::class, 'InvoiceID', $this->ID, $remaining);
+        DocumentLineSnapshotter::snapshotModifiers($order, ShopInvoiceLine::class, 'InvoiceID', $this->ID, $sort);
+    }
 
     /**
      * Render the invoice through the theme cascade so a project can override
