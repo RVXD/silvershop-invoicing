@@ -74,6 +74,15 @@ trait NumberedImmutableDocument
     }
 
     /**
+     * Whether a "Cancel" action applies. Default false; {@link ShopInvoice} overrides it (an issued
+     * invoice that hasn't already been credited).
+     */
+    public function canBeCancelled(): bool
+    {
+        return false;
+    }
+
+    /**
      * Finalise a draft: assign the gap-free number + issue date and freeze it. No-op if already issued.
      */
     public function issue(): void
@@ -362,6 +371,17 @@ trait NumberedImmutableDocument
                     : _t(self::class . '.EMAIL_BUTTON', 'Email to customer');
                 $actions->push(
                     (new CustomAction('emailToCustomer', $label))->setButtonIcon('p-mail')
+                );
+            }
+            if ($this->canBeCancelled()) {
+                $actions->push(
+                    (new CustomAction('doCancelInvoice', _t(self::class . '.CANCEL', 'Cancel invoice')))
+                        ->setButtonIcon('back-in-time')
+                        ->setConfirmation(_t(
+                            self::class . '.CANCEL_CONFIRM',
+                            'Cancel this invoice by issuing a reversing credit memo? The invoice itself is kept.'
+                        ))
+                        ->addExtraClass('btn-danger')
                 );
             }
         }

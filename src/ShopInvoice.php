@@ -120,4 +120,25 @@ class ShopInvoice extends DataObject
     {
         return (string) $this->renderWith('SilverShop/Invoicing/Invoice');
     }
+
+    /**
+     * An issued invoice that has not already been credited can be cancelled (via a reversing credit memo).
+     */
+    public function canBeCancelled(): bool
+    {
+        return $this->isIssued() && !ShopCreditMemo::get()->filter('InvoiceID', $this->ID)->exists();
+    }
+
+    /**
+     * cms-actions handler for the "Cancel invoice" button: issues a reversing credit memo.
+     */
+    public function doCancelInvoice($data = null, $form = null, $controller = null): string
+    {
+        $memo = CreditMemoService::creditMemoForInvoice($this);
+        if (!$memo) {
+            return _t(self::class . '.CANCEL_FAIL', 'This invoice cannot be cancelled (already credited, or not issued).');
+        }
+
+        return _t(self::class . '.CANCEL_OK', 'Issued credit memo {number} cancelling this invoice.', ['number' => $memo->Number]);
+    }
 }

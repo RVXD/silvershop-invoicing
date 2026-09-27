@@ -2,6 +2,7 @@
 
 namespace SilverShop\Invoicing\Tests;
 
+use SilverShop\Invoicing\CreditMemoService;
 use SilverShop\Invoicing\InvoiceService;
 use SilverShop\Invoicing\ShopInvoice;
 use SilverShop\Model\Modifiers\OrderModifier;
@@ -106,5 +107,36 @@ class ShopPartialInvoiceTest extends SapphireTest
         $draft->Total = 999;
         $this->expectException(ValidationException::class);
         $draft->write();
+    }
+
+    public function testCancelInvoiceIssuesReversingCreditMemo(): void
+    {
+        $product = Product::create();
+        $product->Title = 'Widget';
+        $product->BasePrice = 10;
+        $product->write();
+        $product->publishRecursive();
+
+        $order = Order::create();
+        $order->write();
+        $item = $product->createItem(2);
+        $item->write();
+        $order->Items()->add($item);
+
+        $invoice = InvoiceService::invoiceForOrder($order); // issued, total 20
+        $this->assertTrue($invoice->isIssued());
+        $this->assertTrue($invoice->canBeCancelled());
+
+        $memo = CreditMemoService::creditMemoForInvoice($invoice);
+        $this->assertNotNull($memo);
+        $this->assertTrue($memo->isIssued());
+        $this->assertNotEmpty($memo->Number);
+        $this->assertEqualsWithDelta((float) $invoice->Total, (float) $memo->Total, 0.001);
+        $this->assertSame((int) $invoice->ID, (int) $memo->InvoiceID);
+        $this->assertSame($invoice->ItemLines()->count(), $memo->ItemLines()->count());
+
+        // Idempotent: an already-credited invoice cannot be cancelled again.
+        $this->assertFalse($invoice->canBeCancelled());
+        $this->assertNull(CreditMemoService::creditMemoForInvoice($invoice));
     }
 }
