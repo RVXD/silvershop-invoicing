@@ -93,6 +93,7 @@ class CreditMemoService
                 $copy->Quantity = $line->Quantity;
                 $copy->UnitAmount = $line->UnitAmount;
                 $copy->Amount = $line->Amount;
+                $copy->TaxRate = $line->TaxRate;
                 $copy->OrderItemID = $line->OrderItemID;
                 $copy->OrderModifierID = $line->OrderModifierID;
                 $copy->Sort = $line->Sort;

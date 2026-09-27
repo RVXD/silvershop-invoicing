@@ -3,13 +3,13 @@
 namespace SilverShop\Invoicing\Tests;
 
 use SilverShop\Invoicing\CreditMemoService;
+use SilverShop\Invoicing\DocumentLineSnapshotter;
 use SilverShop\Invoicing\InvoiceService;
 use SilverShop\Invoicing\ShopInvoice;
+use SilverShop\Invoicing\ShopInvoiceLine;
 use SilverShop\Model\Modifiers\OrderModifier;
-use SilverShop\Model\Modifiers\Tax\FlatTax;
 use SilverShop\Model\Order;
 use SilverShop\Page\Product;
-use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Dev\TestOnly;
@@ -194,39 +194,34 @@ class ShopPartialInvoiceTest extends SapphireTest
         $this->assertEqualsWithDelta(14, (float) $invoice->Total, 0.001);
     }
 
-    public function testInclusiveTaxCapturedAsMemoLineExcludedFromTotal(): void
+    public function testTaxSummaryEmitsOneInclusiveVatLinePerRate(): void
     {
-        // VAT-inclusive: prices already contain the tax, so the modifier is Type 'Ignored' and must not
-        // change the total — but a compliant invoice still states it, as an informational Tax line.
-        Config::modify()->set(FlatTax::class, 'rate', 0.21);
-        Config::modify()->set(FlatTax::class, 'exclusive', false);
-        Config::modify()->merge(Order::class, 'modifiers', [FlatTax::class]);
+        // VAT-inclusive: prices already contain the tax. The summary extracts one VAT line per rate from
+        // the item lines and never changes the total. Goods @21% on 121 gross → 21.00; food @9% on 109 → 9.00.
+        $invoice = ShopInvoice::create();
+        $invoice->write(); // a draft (no number); tax lines must not affect its total
 
-        $product = Product::create();
-        $product->Title = 'Widget';
-        $product->BasePrice = 100;
-        $product->write();
-        $product->publishRecursive();
+        foreach ([['Widget A', 100, 0.21], ['Widget B', 21, 0.21], ['Bread', 109, 0.09]] as [$title, $amount, $rate]) {
+            $line = ShopInvoiceLine::create();
+            $line->InvoiceID = $invoice->ID;
+            $line->Kind = 'Item';
+            $line->Title = $title;
+            $line->Quantity = 1;
+            $line->UnitAmount = $amount;
+            $line->TaxRate = $rate;
+            $line->write();
+        }
 
-        $order = Order::create();
-        $order->write();
-        $item = $product->createItem(1);
-        $item->write();
-        $order->Items()->add($item);
-        $order->calculate();
-        $order->write();
+        DocumentLineSnapshotter::snapshotTaxSummary(ShopInvoiceLine::class, 'InvoiceID', $invoice->ID);
 
-        $invoice = InvoiceService::invoiceForOrder($order);
+        $taxLines = ShopInvoiceLine::get()->filter(['InvoiceID' => $invoice->ID, 'Kind' => 'Tax']);
+        $this->assertCount(2, $taxLines); // one line per distinct rate
+        $this->assertEqualsWithDelta(21.00, (float) $taxLines->filter('TaxRate', 0.21)->first()->Amount, 0.01);
+        $this->assertEqualsWithDelta(9.00, (float) $taxLines->filter('TaxRate', 0.09)->first()->Amount, 0.01);
 
-        // The tax is snapshotted as a Tax-kind line with a positive amount…
-        $taxLines = $invoice->Lines()->filter('Kind', 'Tax');
-        $this->assertCount(1, $taxLines);
-        $this->assertGreaterThan(0, (float) $taxLines->first()->Amount);
-        $this->assertSame(1, (int) $invoice->TaxLines()->count());
-
-        // …but it is excluded from the total: the gross stays 100 and the non-tax lines already sum to it.
-        $this->assertEqualsWithDelta(100, (float) $invoice->Total, 0.01);
-        $nonTax = (float) $invoice->Lines()->exclude('Kind', 'Tax')->sum('Amount');
-        $this->assertEqualsWithDelta((float) $invoice->Total, $nonTax, 0.01);
+        // Tax is informational — excluded from the total (which tracks only item + modifier lines).
+        $invoice = ShopInvoice::get()->byID($invoice->ID);
+        $this->assertEqualsWithDelta(230, (float) $invoice->Total, 0.01);
+        $this->assertSame(2, (int) $invoice->TaxLines()->count());
     }
 }

@@ -28,6 +28,7 @@ class ShopCreditMemoLine extends DataObject
         'Quantity' => 'Decimal(12,2)',
         'UnitAmount' => ShopCurrency::class,
         'Amount' => ShopCurrency::class,
+        'TaxRate' => 'Decimal(6,4)', // VAT rate of the source product (0.09 / 0.21); 0 for non-item lines
         'Sort' => 'Int',
     ];
 

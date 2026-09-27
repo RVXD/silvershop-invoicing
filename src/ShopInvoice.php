@@ -109,7 +109,8 @@ class ShopInvoice extends DataObject
         }
 
         $sort = DocumentLineSnapshotter::snapshotItems($order, ShopInvoiceLine::class, 'InvoiceID', $this->ID, $remaining);
-        DocumentLineSnapshotter::snapshotModifiers($order, ShopInvoiceLine::class, 'InvoiceID', $this->ID, $sort);
+        $sort = DocumentLineSnapshotter::snapshotModifiers($order, ShopInvoiceLine::class, 'InvoiceID', $this->ID, $sort);
+        DocumentLineSnapshotter::snapshotTaxSummary(ShopInvoiceLine::class, 'InvoiceID', $this->ID, $sort);
     }
 
     /**

@@ -2,7 +2,6 @@
 
 namespace SilverShop\Invoicing;
 
-use SilverShop\Model\Modifiers\Tax\Base as TaxBase;
 use SilverShop\Model\Order;
 
 /**
@@ -26,7 +25,8 @@ class DocumentLineSnapshotter
     public static function snapshot(Order $order, string $lineClass, string $parentField, int $parentId): void
     {
         $sort = self::snapshotItems($order, $lineClass, $parentField, $parentId);
-        self::snapshotModifiers($order, $lineClass, $parentField, $parentId, $sort);
+        $sort = self::snapshotModifiers($order, $lineClass, $parentField, $parentId, $sort);
+        self::snapshotTaxSummary($lineClass, $parentField, $parentId, $sort);
     }
 
     /**
@@ -65,6 +65,9 @@ class DocumentLineSnapshotter
             $line->Quantity = $qty;
             $line->UnitAmount = $unit;
             $line->Amount = $unit * $qty;
+            // Per-product VAT rate for the tax summary: the buyable may expose getTaxRate() (e.g. 0.09
+            // food / 0.21 goods). hasMethod() so an extension-provided rate is honoured. 0 = untaxed.
+            $line->TaxRate = $buyable && $buyable->hasMethod('getTaxRate') ? (float) $buyable->getTaxRate() : 0.0;
             $line->OrderItemID = $item->ID;
             $line->Sort = ++$sort;
             // Extension point: enrich the item line from its source OrderItem before it is frozen.
@@ -88,29 +91,8 @@ class DocumentLineSnapshotter
         int $sort = 0
     ): int {
         foreach ($order->Modifiers()->sort('Sort') as $modifier) {
-            // Inclusive tax (e.g. VAT-inclusive prices) is Type 'Ignored' — it does NOT change the total,
-            // but a compliant invoice must still state the tax. Capture it as an informational Tax line
-            // (excluded from the document total). Exclusive tax is 'Chargable' and falls through to a
-            // normal modifier line that does add to the total.
-            if ($modifier instanceof TaxBase && $modifier->Type === 'Ignored') {
-                $tax = (float) $modifier->Amount;
-                if (abs($tax) >= 0.005) {
-                    $line = $lineClass::create();
-                    $line->$parentField = $parentId;
-                    $line->Kind = 'Tax';
-                    $line->Title = $modifier->getTableTitle();
-                    $line->Quantity = 1;
-                    $line->Amount = $tax;
-                    $line->OrderModifierID = $modifier->ID;
-                    $line->Sort = ++$sort;
-                    $line->extend('updateSnapshotLine', $modifier, $order);
-                    $line->write();
-                }
-                continue;
-            }
-
             if ($modifier->Type === 'Ignored') {
-                continue; // e.g. the SubTotal marker — item lines already carry it
+                continue; // e.g. the SubTotal marker (item lines carry it) or inclusive tax (see below)
             }
 
             // Respect each modifier's own visibility contract — a discount/tax/shipping modifier that
@@ -135,6 +117,73 @@ class DocumentLineSnapshotter
             $line->Sort = ++$sort;
             // Extension point: enrich the modifier line from its source OrderModifier.
             $line->extend('updateSnapshotLine', $modifier, $order);
+            $line->write();
+        }
+
+        return $sort;
+    }
+
+    /**
+     * VAT summary: one informational Tax line per rate, computed from the document's own item lines
+     * (each carrying its per-product TaxRate). Prices are treated as VAT-inclusive, so the tax is
+     * extracted (base − base/(1+rate)) and the Tax lines never change the total. An order-level discount
+     * reduces the taxable base, apportioned across items in proportion to value — matching how
+     * SilverShop's FlatTax handles per-item rates. No item rate → no tax lines.
+     *
+     * Reads the lines already written for this document, so it must run after snapshotItems() (and
+     * snapshotModifiers(), so discounts are present).
+     *
+     * @param class-string $lineClass
+     * @return int the last Sort index used
+     */
+    public static function snapshotTaxSummary(string $lineClass, string $parentField, int $parentId, int $sort = 0): int
+    {
+        $lines = $lineClass::get()->filter($parentField, $parentId);
+        $itemLines = $lines->filter('Kind', 'Item');
+        $itemGross = (float) $itemLines->sum('Amount');
+        if ($itemGross <= 0) {
+            return $sort;
+        }
+
+        // Order-level discount = the negative (Deductable) modifier lines.
+        $discount = 0.0;
+        foreach ($lines->filter('Kind', 'Modifier') as $modifierLine) {
+            $amount = (float) $modifierLine->Amount;
+            if ($amount < 0) {
+                $discount += -$amount;
+            }
+        }
+
+        // Discounted taxable base grouped by rate.
+        $baseByRate = [];
+        foreach ($itemLines as $itemLine) {
+            $rate = (float) $itemLine->TaxRate;
+            if ($rate <= 0) {
+                continue;
+            }
+            $gross = (float) $itemLine->Amount;
+            $taxable = $gross - ($gross / $itemGross) * $discount;
+            $key = number_format($rate, 4, '.', '');
+            $baseByRate[$key] = ($baseByRate[$key] ?? 0.0) + $taxable;
+        }
+        ksort($baseByRate, SORT_NUMERIC);
+
+        foreach ($baseByRate as $key => $base) {
+            $rate = (float) $key;
+            $vat = $base - round($base / (1 + $rate), 2);
+            if (abs($vat) < 0.005) {
+                continue;
+            }
+            $pct = rtrim(rtrim(number_format($rate * 100, 2, '.', ''), '0'), '.');
+
+            $line = $lineClass::create();
+            $line->$parentField = $parentId;
+            $line->Kind = 'Tax';
+            $line->TaxRate = $rate;
+            $line->Title = _t('SilverShop\\Invoicing\\Tax.LINE', 'VAT {pct}%', ['pct' => $pct]);
+            $line->Quantity = 1;
+            $line->Amount = $vat;
+            $line->Sort = ++$sort;
             $line->write();
         }
 

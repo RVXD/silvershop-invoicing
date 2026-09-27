@@ -181,8 +181,10 @@ class InvoiceService
                 $toInvoice
             );
             if ($completing) {
-                DocumentLineSnapshotter::snapshotModifiers($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID, $sort);
+                $sort = DocumentLineSnapshotter::snapshotModifiers($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID, $sort);
             }
+            // VAT summary on the invoiced items (after any discount lines are present).
+            DocumentLineSnapshotter::snapshotTaxSummary(ShopInvoiceLine::class, 'InvoiceID', $invoice->ID, $sort);
         });
 
         // Only issued invoices are emailed (a draft is not sent until finalised).
