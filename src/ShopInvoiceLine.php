@@ -54,6 +54,15 @@ class ShopInvoiceLine extends DataObject
         'NiceAmount' => 'HTMLText',
     ];
 
+    public function summaryFields(): array
+    {
+        return [
+            'Title' => _t(self::class . '.col_Description', 'Description'),
+            'Quantity' => _t(self::class . '.col_Qty', 'Qty'),
+            'NiceAmount' => _t(self::class . '.col_Amount', 'Amount'),
+        ];
+    }
+
     /**
      * Amount via ShopCurrency::Nice(), which wraps negatives in <span class="negative">. Returned as
      * HTMLText so the CMS GridField renders the markup instead of escaping it to visible raw tags.

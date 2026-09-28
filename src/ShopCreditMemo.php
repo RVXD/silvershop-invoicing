@@ -66,6 +66,18 @@ class ShopCreditMemo extends DataObject
 
     private static array $searchable_fields = ['Number', 'Order.Reference', 'Order.LatestEmail'];
 
+    public function summaryFields(): array
+    {
+        return [
+            'Number' => _t(self::class . '.col_Number', 'Credit Memo'),
+            'Issued.Nice' => _t(self::class . '.col_Issued', 'Issued'),
+            'Order.Reference' => _t(self::class . '.col_Order', 'Order'),
+            'Order.Name' => _t(self::class . '.col_Customer', 'Customer'),
+            'Total.Nice' => _t(self::class . '.col_Total', 'Total'),
+            'EmailSent.Nice' => _t(self::class . '.col_Emailed', 'Emailed'),
+        ];
+    }
+
     private static string $number_prefix = 'CM-';
 
     private static string $document_url_segment = 'creditmemo';

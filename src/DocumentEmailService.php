@@ -42,14 +42,25 @@ class DocumentEmailService
 
         $document->EmailSent = DBDatetime::now()->getValue();
         $document->write();
-        $document->addComment('Emailed ' . self::labelFor($document) . ' to ' . $recipient, true, false, $actor);
+        $document->addComment(
+            _t(
+                'SilverShop\\Invoicing\\Document.EMAILED_COMMENT',
+                'Emailed {label} to {recipient}',
+                ['label' => self::labelFor($document), 'recipient' => $recipient]
+            ),
+            true,
+            false,
+            $actor
+        );
 
         return true;
     }
 
     protected static function labelFor($document): string
     {
-        return $document instanceof ShopCreditMemo ? 'credit memo' : 'invoice';
+        return $document instanceof ShopCreditMemo
+            ? _t('SilverShop\\Invoicing\\Document.LABEL_CREDITMEMO', 'credit memo')
+            : _t('SilverShop\\Invoicing\\Document.LABEL_INVOICE', 'invoice');
     }
 
     protected static function subjectFor($document): string
@@ -59,6 +70,10 @@ class DocumentEmailService
             ? $config->InvoiceSellerNameOrDefault()
             : (string) ($config ? $config->Title : '');
 
-        return trim($seller . ' ' . ucfirst(self::labelFor($document)) . ' ' . $document->Number);
+        return trim(_t(
+            'SilverShop\\Invoicing\\Document.EMAIL_SUBJECT',
+            '{seller} {label} {number}',
+            ['seller' => $seller, 'label' => ucfirst(self::labelFor($document)), 'number' => $document->Number]
+        ));
     }
 }

@@ -57,35 +57,39 @@ class InvoiceSettingsExtension extends Extension
         $tab = $fields->fieldByName('Root.Shop') ? 'Root.Shop.ShopTabs.Invoicing' : 'Root.Invoicing';
 
         $fields->addFieldsToTab($tab, [
-            DropdownField::create('InvoicePaperSize', 'PDF paper size', ['A4' => 'A4', 'Letter' => 'Letter (US)'])
-                ->setDescription('A4 is the European standard; Letter is US.'),
-            UploadField::create('InvoiceLogo', 'Logo')
+            DropdownField::create('InvoicePaperSize', _t(self::class . '.PAPER_SIZE', 'PDF paper size'), [
+                'A4' => 'A4',
+                'Letter' => _t(self::class . '.PAPER_LETTER', 'Letter (US)'),
+            ])
+                ->setDescription(_t(self::class . '.PAPER_SIZE_DESC', 'A4 is the European standard; Letter is US.')),
+            UploadField::create('InvoiceLogo', _t(self::class . '.LOGO', 'Logo'))
                 ->setFolderName('invoicing')
                 ->setAllowedFileCategories('image'),
-            TextField::create('InvoiceSellerName', 'Seller name')
-                ->setDescription('Shown as the sender. Defaults to the site title when empty.'),
-            TextareaField::create('InvoiceSellerAddress', 'Seller address'),
-            TextField::create('InvoiceVatNumber', 'VAT number'),
-            TextField::create('InvoiceRegistrationNumber', 'Registration / company no.'),
-            TextareaField::create('InvoiceFooterText', 'Document footer text')
-                ->setDescription('Payment terms / thank-you note printed at the bottom of every document.'),
-            CheckboxField::create('InvoiceAutoOnCapture', 'Automatically create and issue an invoice when a payment is captured')
-                ->setDescription('On: paid orders get a finalised invoice automatically. Off: staff create invoices manually (as drafts) from each order.'),
-            CheckboxField::create('InvoiceEmailOnIssue', 'Email the invoice to the customer when it is issued')
-                ->setDescription('Automatically emails the PDF to the order email on capture. You can also email manually from each document.'),
+            TextField::create('InvoiceSellerName', _t(self::class . '.SELLER_NAME', 'Seller name'))
+                ->setDescription(_t(self::class . '.SELLER_NAME_DESC', 'Shown as the sender. Defaults to the site title when empty.')),
+            TextareaField::create('InvoiceSellerAddress', _t(self::class . '.SELLER_ADDRESS', 'Seller address')),
+            TextField::create('InvoiceVatNumber', _t(self::class . '.VAT_NUMBER', 'VAT number')),
+            TextField::create('InvoiceRegistrationNumber', _t(self::class . '.REG_NUMBER', 'Registration / company no.')),
+            TextareaField::create('InvoiceFooterText', _t(self::class . '.FOOTER_TEXT', 'Document footer text'))
+                ->setDescription(_t(self::class . '.FOOTER_TEXT_DESC', 'Payment terms / thank-you note printed at the bottom of every document.')),
+            CheckboxField::create('InvoiceAutoOnCapture', _t(self::class . '.AUTO_ON_CAPTURE', 'Automatically create and issue an invoice when a payment is captured'))
+                ->setDescription(_t(self::class . '.AUTO_ON_CAPTURE_DESC', 'On: paid orders get a finalised invoice automatically. Off: staff create invoices manually (as drafts) from each order.')),
+            CheckboxField::create('InvoiceEmailOnIssue', _t(self::class . '.EMAIL_ON_ISSUE', 'Email the invoice to the customer when it is issued'))
+                ->setDescription(_t(self::class . '.EMAIL_ON_ISSUE_DESC', 'Automatically emails the PDF to the order email on capture. You can also email manually from each document.')),
         ]);
+        $fields->findOrMakeTab($tab)->setTitle(_t(self::class . '.TAB_INVOICING', 'Invoicing'));
 
         // Tax classes: a small editor under Shop settings. They rarely change, so this lives here rather
         // than in a top-level ModelAdmin. SilverShop core ships no admin for them at all.
         $taxTab = $fields->fieldByName('Root.Shop') ? 'Root.Shop.ShopTabs.Tax' : 'Root.Tax';
-        $taxGrid = GridField::create('ShopTaxClasses', 'Tax classes', TaxClass::get(), GridFieldConfig_RecordEditor::create());
+        $taxGrid = GridField::create('ShopTaxClasses', _t(self::class . '.TAX_CLASSES', 'Tax classes'), TaxClass::get(), GridFieldConfig_RecordEditor::create());
         $taxColumns = $taxGrid->getConfig()->getComponentByType(GridFieldDataColumns::class);
         if ($taxColumns) {
             // Rate as a percentage (not the raw fraction) + which class is the default for new products.
             $taxColumns->setDisplayFields([
-                'Title' => 'Title',
-                'RatePercent' => 'Rate',
-                'DefaultLabel' => 'Default',
+                'Title' => _t(self::class . '.COL_TITLE', 'Title'),
+                'RatePercent' => _t(self::class . '.COL_RATE', 'Rate'),
+                'DefaultLabel' => _t(self::class . '.COL_DEFAULT', 'Default'),
             ]);
         }
         $fields->addFieldsToTab($taxTab, [
@@ -94,11 +98,15 @@ class InvoiceSettingsExtension extends Extension
                 'TaxClassesNote',
                 '<p class="message notice" style="display:flex;align-items:flex-start;gap:.5em">'
                 . '<span class="font-icon-info-circled" aria-hidden="true"></span><span>'
-                . 'A tax class sets a VAT rate (e.g. 21% standard, 9% food). Assign one to a product on its '
-                . '<strong>Pricing</strong> tab; invoices and credit memos then show a VAT line per rate.'
+                . _t(
+                    self::class . '.TAX_CLASSES_NOTE',
+                    'A tax class sets a VAT rate (e.g. 21% standard, 9% food). Assign one to a product on its '
+                    . '<strong>Pricing</strong> tab; invoices and credit memos then show a VAT line per rate.'
+                )
                 . '</span></p>'
             ),
         ]);
+        $fields->findOrMakeTab($taxTab)->setTitle(_t(self::class . '.TAB_TAX', 'Tax'));
     }
 
     /**

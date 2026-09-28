@@ -207,6 +207,14 @@ trait NumberedImmutableDocument
     }
 
     /**
+     * The two-letter language of the current locale, for the document's <html lang="…"> attribute.
+     */
+    public function DocumentLang(): string
+    {
+        return substr(\SilverStripe\i18n\i18n::get_locale(), 0, 2) ?: 'en';
+    }
+
+    /**
      * Absolute URL of the printable document (HTML view). Append "/pdf" for the PDF.
      * Uses the class's `document_url_segment` config (e.g. "invoice", "creditmemo").
      */
@@ -258,8 +266,11 @@ trait NumberedImmutableDocument
                 'NewDraftHint',
                 '<p class="message notice" style="display:flex;align-items:flex-start;gap:.5em">'
                 . '<span class="font-icon-info-circled" aria-hidden="true"></span><span>'
-                . 'Saving creates a <strong>draft</strong> invoice from the order&rsquo;s still-to-invoice items. '
-                . 'You can then adjust the line quantities, add a note, and <strong>Issue</strong> it.'
+                . _t(
+                    'SilverShop\\Invoicing\\Document.NEW_DRAFT_HINT',
+                    'Saving creates a <strong>draft</strong> invoice from the order&rsquo;s still-to-invoice '
+                    . 'items. You can then adjust the line quantities, add a note, and <strong>Issue</strong> it.'
+                )
                 . '</span></p>'
             ));
         }
@@ -268,9 +279,9 @@ trait NumberedImmutableDocument
         $order = $this->Order();
         if ($order && $order->exists()) {
             $summary = [
-                ReadonlyField::create('SummaryCustomer', 'Customer', $order->Name),
-                ReadonlyField::create('SummaryEmail', 'Email', $order->LatestEmail),
-                ReadonlyField::create('SummaryOrderStatus', 'Order status', $order->Status),
+                ReadonlyField::create('SummaryCustomer', _t('SilverShop\\Invoicing\\Document.CUSTOMER', 'Customer'), $order->Name),
+                ReadonlyField::create('SummaryEmail', _t('SilverShop\\Invoicing\\Document.EMAIL', 'Email'), $order->LatestEmail),
+                ReadonlyField::create('SummaryOrderStatus', _t('SilverShop\\Invoicing\\Document.ORDER_STATUS', 'Order status'), $order->Status),
             ];
             if ($fields->dataFieldByName('Order')) {
                 foreach ($summary as $field) {
@@ -309,9 +320,10 @@ trait NumberedImmutableDocument
                 $fields->makeFieldReadonly($field);
             }
         }
-        $fields->dataFieldByName('CustomerNote')?->setDescription(
+        $fields->dataFieldByName('CustomerNote')?->setDescription(_t(
+            'SilverShop\\Invoicing\\Document.CUSTOMER_NOTE_DESC',
             'Optional note printed on the invoice (e.g. payment terms or a message). Editable while draft.'
-        );
+        ));
 
         // Level-2 editing: staff may change line quantities on a draft, but not add arbitrary lines.
         $linesGrid = $fields->dataFieldByName('Lines');
@@ -347,19 +359,19 @@ trait NumberedImmutableDocument
         if (!$this->isIssued()) {
             // Draft: finalise it (optionally emailing), plus a draft PDF preview.
             $actions->push(
-                (new CustomAction('doIssue', _t(self::class . '.ISSUE', 'Issue invoice')))
+                (new CustomAction('doIssue', _t('SilverShop\\Invoicing\\Document.ISSUE', 'Issue invoice')))
                     ->setButtonIcon('check-mark-circle')
                     ->addExtraClass('btn-primary')
             );
             if ($hasRecipient) {
                 $actions->push(
-                    (new CustomAction('doIssueAndEmail', _t(self::class . '.ISSUE_EMAIL', 'Issue & email customer')))
+                    (new CustomAction('doIssueAndEmail', _t('SilverShop\\Invoicing\\Document.ISSUE_EMAIL', 'Issue & email customer')))
                         ->setButtonIcon('p-mail')
                 );
             }
             if ($url) {
                 $actions->push(
-                    (new CustomLink('previewDraftPdf', _t(self::class . '.PREVIEW_PDF', 'Preview PDF'), $url . '/pdf'))
+                    (new CustomLink('previewDraftPdf', _t('SilverShop\\Invoicing\\Document.PREVIEW_PDF', 'Preview PDF'), $url . '/pdf'))
                         ->setButtonIcon('down-circled')
                         ->setNewWindow(true)
                 );
@@ -368,7 +380,7 @@ trait NumberedImmutableDocument
             // Issued: download the PDF and (re-)email it.
             if ($url) {
                 $actions->push(
-                    (new CustomLink('downloadDocumentPdf', _t(self::class . '.PDF', 'Download PDF'), $url . '/pdf'))
+                    (new CustomLink('downloadDocumentPdf', _t('SilverShop\\Invoicing\\Document.PDF', 'Download PDF'), $url . '/pdf'))
                         ->setButtonIcon('down-circled')
                         ->setNewWindow(true)
                         ->addExtraClass('btn-primary')
@@ -376,8 +388,8 @@ trait NumberedImmutableDocument
             }
             if ($hasRecipient) {
                 $label = $this->EmailSent
-                    ? _t(self::class . '.EMAIL_RESEND', 'Re-email to customer')
-                    : _t(self::class . '.EMAIL_BUTTON', 'Email to customer');
+                    ? _t('SilverShop\\Invoicing\\Document.EMAIL_RESEND', 'Re-email to customer')
+                    : _t('SilverShop\\Invoicing\\Document.EMAIL_BUTTON', 'Email to customer');
                 $actions->push(
                     (new CustomAction('emailToCustomer', $label))
                         ->setButtonIcon('p-mail')
@@ -387,10 +399,10 @@ trait NumberedImmutableDocument
             }
             if ($this->canBeCancelled()) {
                 $actions->push(
-                    (new CustomAction('doCancelInvoice', _t(self::class . '.CANCEL', 'Cancel invoice')))
+                    (new CustomAction('doCancelInvoice', _t('SilverShop\\Invoicing\\Document.CANCEL', 'Cancel invoice')))
                         ->setButtonIcon('back-in-time')
                         ->setConfirmation(_t(
-                            self::class . '.CANCEL_CONFIRM',
+                            'SilverShop\\Invoicing\\Document.CANCEL_CONFIRM',
                             'Cancel this invoice by issuing a reversing credit memo? The invoice itself is kept.'
                         ))
                         ->addExtraClass('btn-danger')
@@ -413,14 +425,14 @@ trait NumberedImmutableDocument
         $order = $this->Order();
         $recipient = ($order && $order->exists()) ? (string) $order->LatestEmail : '';
         if (!$recipient) {
-            return _t(self::class . '.EMAIL_NONE', 'No customer email address on the order.');
+            return _t('SilverShop\\Invoicing\\Document.EMAIL_NONE', 'No customer email address on the order.');
         }
 
         if (DocumentEmailService::send($this, Security::getCurrentUser())) {
-            return _t(self::class . '.EMAIL_OK', 'Emailed to {email}', ['email' => $recipient]);
+            return _t('SilverShop\\Invoicing\\Document.EMAIL_OK', 'Emailed to {email}', ['email' => $recipient]);
         }
 
-        return _t(self::class . '.EMAIL_FAIL', 'The email could not be sent.');
+        return _t('SilverShop\\Invoicing\\Document.EMAIL_FAIL', 'The email could not be sent.');
     }
 
     /**
@@ -429,12 +441,12 @@ trait NumberedImmutableDocument
     public function doIssue($data = null, $form = null, $controller = null): string
     {
         if ($this->isIssued()) {
-            return _t(self::class . '.ALREADY_ISSUED', 'This document is already issued.');
+            return _t('SilverShop\\Invoicing\\Document.ALREADY_ISSUED', 'This document is already issued.');
         }
 
         $this->issue();
 
-        return _t(self::class . '.ISSUED_OK', 'Issued {number}.', ['number' => $this->Number]);
+        return _t('SilverShop\\Invoicing\\Document.ISSUED_OK', 'Issued {number}.', ['number' => $this->Number]);
     }
 
     /**
@@ -449,13 +461,13 @@ trait NumberedImmutableDocument
         $order = $this->Order();
         $recipient = ($order && $order->exists()) ? (string) $order->LatestEmail : '';
         if ($recipient && DocumentEmailService::send($this, Security::getCurrentUser())) {
-            return _t(self::class . '.ISSUED_EMAILED', 'Issued {number} and emailed it to {email}.', [
+            return _t('SilverShop\\Invoicing\\Document.ISSUED_EMAILED', 'Issued {number} and emailed it to {email}.', [
                 'number' => $this->Number,
                 'email' => $recipient,
             ]);
         }
 
-        return _t(self::class . '.ISSUED_NOEMAIL', 'Issued {number}, but the email could not be sent.', [
+        return _t('SilverShop\\Invoicing\\Document.ISSUED_NOEMAIL', 'Issued {number}, but the email could not be sent.', [
             'number' => $this->Number,
         ]);
     }

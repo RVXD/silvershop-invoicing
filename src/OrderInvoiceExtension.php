@@ -34,18 +34,16 @@ class OrderInvoiceExtension extends Extension
         // Invoices: create drafts here (Add-new), edit while draft, view once issued.
         $invoicesConfig = GridFieldConfig_RecordEditor::create();
         if ($add = $invoicesConfig->getComponentByType(GridFieldAddNewButton::class)) {
-            $add->setButtonName('Create invoice');
+            $add->setButtonName(_t(self::class . '.CREATE_INVOICE', 'Create invoice'));
         }
-        $fields->addFieldToTab(
-            'Root.Invoices',
-            GridField::create('Invoices', 'Invoices', $order->Invoices(), $invoicesConfig)
-        );
+        $invoicesGrid = GridField::create('Invoices', _t(self::class . '.INVOICES', 'Invoices'), $order->Invoices(), $invoicesConfig);
+        $fields->addFieldToTab('Root.Invoices', $invoicesGrid);
+        $fields->findOrMakeTab('Root.Invoices')->setTitle(_t(self::class . '.TAB_INVOICES', 'Invoices'));
 
         // Credit memos are auto-created on refund — view only.
-        $fields->addFieldToTab(
-            'Root.CreditMemos',
-            GridField::create('CreditMemos', 'Credit Memos', $order->CreditMemos(), GridFieldConfig_RecordViewer::create())
-        );
+        $creditMemosGrid = GridField::create('CreditMemos', _t(self::class . '.CREDIT_MEMOS', 'Credit Memos'), $order->CreditMemos(), GridFieldConfig_RecordViewer::create());
+        $fields->addFieldToTab('Root.CreditMemos', $creditMemosGrid);
+        $fields->findOrMakeTab('Root.CreditMemos')->setTitle(_t(self::class . '.TAB_CREDIT_MEMOS', 'Credit Memos'));
     }
 
     /**

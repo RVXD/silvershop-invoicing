@@ -41,7 +41,7 @@ class TaxClassCMSExtension extends Extension
             ));
         }
 
-        $fields->addFieldToTab('Root.Main', CheckboxField::create('IsDefault', 'Default for new products')
+        $fields->addFieldToTab('Root.Main', CheckboxField::create('IsDefault', _t(self::class . '.DEFAULT_FIELD', 'Default for new products'))
             ->setDescription(_t(
                 self::class . '.DEFAULT_NOTE',
                 'New products start with this tax class pre-selected. Only one class can be the default.'
@@ -61,7 +61,10 @@ class TaxClassCMSExtension extends Extension
             );
             $columns = $grid->getConfig()->getComponentByType(GridFieldDataColumns::class);
             if ($columns) {
-                $columns->setDisplayFields(['InternalItemID' => 'SKU', 'Title' => 'Product']);
+                $columns->setDisplayFields([
+                    'InternalItemID' => _t(self::class . '.COL_SKU', 'SKU'),
+                    'Title' => _t(self::class . '.COL_PRODUCT', 'Product'),
+                ]);
             }
             $fields->addFieldToTab('Root.Products', $grid);
         }

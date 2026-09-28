@@ -64,6 +64,19 @@ class ShopInvoice extends DataObject
 
     private static array $searchable_fields = ['Number', 'Order.Reference', 'Order.LatestEmail'];
 
+    public function summaryFields(): array
+    {
+        return [
+            'Number' => _t(self::class . '.col_Number', 'Invoice'),
+            'Status' => _t(self::class . '.col_Status', 'Status'),
+            'Issued.Nice' => _t(self::class . '.col_Issued', 'Issued'),
+            'Order.Reference' => _t(self::class . '.col_Order', 'Order'),
+            'Order.Name' => _t(self::class . '.col_Customer', 'Customer'),
+            'Total.Nice' => _t(self::class . '.col_Total', 'Total'),
+            'EmailSent.Nice' => _t(self::class . '.col_Emailed', 'Emailed'),
+        ];
+    }
+
     /**
      * Prefix for generated invoice numbers, e.g. INV-00001.
      */
