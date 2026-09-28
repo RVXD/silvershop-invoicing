@@ -17,6 +17,10 @@ SilverShop\Page\Product:
   extensions:
     - SilverShop\Invoicing\ProductInvoiceExtension
 
+SilverShop\Model\TaxClass:
+  extensions:
+    - SilverShop\Invoicing\TaxClassCMSExtension
+
 SilverStripe\Omnipay\Model\Payment:
   extensions:
     - SilverShop\Invoicing\PaymentInvoiceExtension

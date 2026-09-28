@@ -2,6 +2,7 @@
 
 namespace SilverShop\Invoicing;
 
+use SilverShop\Model\TaxClass;
 use SilverStripe\AssetAdmin\Forms\UploadField;
 use SilverStripe\Assets\Image;
 use SilverStripe\Core\Convert;
@@ -9,6 +10,10 @@ use SilverStripe\Core\Extension;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\DropdownField;
 use SilverStripe\Forms\FieldList;
+use SilverStripe\Forms\GridField\GridField;
+use SilverStripe\Forms\GridField\GridFieldConfig_RecordEditor;
+use SilverStripe\Forms\GridField\GridFieldDataColumns;
+use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\TextareaField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\FieldType\DBField;
@@ -68,6 +73,27 @@ class InvoiceSettingsExtension extends Extension
                 ->setDescription('On: paid orders get a finalised invoice automatically. Off: staff create invoices manually (as drafts) from each order.'),
             CheckboxField::create('InvoiceEmailOnIssue', 'Email the invoice to the customer when it is issued')
                 ->setDescription('Automatically emails the PDF to the order email on capture. You can also email manually from each document.'),
+        ]);
+
+        // Tax classes: a small editor under Shop settings. They rarely change, so this lives here rather
+        // than in a top-level ModelAdmin. SilverShop core ships no admin for them at all.
+        $taxTab = $fields->fieldByName('Root.Shop') ? 'Root.Shop.ShopTabs.Tax' : 'Root.Tax';
+        $taxGrid = GridField::create('ShopTaxClasses', 'Tax classes', TaxClass::get(), GridFieldConfig_RecordEditor::create());
+        $taxColumns = $taxGrid->getConfig()->getComponentByType(GridFieldDataColumns::class);
+        if ($taxColumns) {
+            // Show the rate as a percentage (TaxClassCMSExtension::getRatePercent), not the raw fraction.
+            $taxColumns->setDisplayFields(['Title' => 'Title', 'RatePercent' => 'Rate']);
+        }
+        $fields->addFieldsToTab($taxTab, [
+            $taxGrid,
+            LiteralField::create(
+                'TaxClassesNote',
+                '<p class="message notice" style="display:flex;align-items:flex-start;gap:.5em">'
+                . '<span class="font-icon-info-circled" aria-hidden="true"></span><span>'
+                . 'A tax class sets a VAT rate (e.g. 21% standard, 9% food). Assign one to a product on its '
+                . '<strong>Pricing</strong> tab; invoices and credit memos then show a VAT line per rate.'
+                . '</span></p>'
+            ),
         ]);
     }
 
