@@ -33,6 +33,7 @@ class ShopInvoice extends DataObject
         'Currency' => 'Varchar(3)',
         'CustomerNote' => 'Text',
         'EmailSent' => 'Datetime',
+        'Locale' => 'Varchar(10)', // locale the document was issued/rendered in (frozen with its lines)
     ];
 
     // New invoices start as an editable draft (CMS "Create invoice"); the auto/service paths set Issued.
@@ -110,10 +111,16 @@ class ShopInvoice extends DataObject
             return;
         }
 
-        // Carry the order currency onto the draft (raw update — avoids re-entering onAfterWrite).
-        if (!$this->Currency) {
-            $this->Currency = $order->Currency();
-            DB::prepared_query('UPDATE "ShopInvoice" SET "Currency" = ? WHERE "ID" = ?', [(string) $this->Currency, $this->ID]);
+        // Carry the order currency + resolved locale onto the draft (raw update — avoids re-entering
+        // onAfterWrite). The locale freezes the language its snapshotted lines are written in.
+        $locale = self::resolveDocumentLocale($order);
+        if (!$this->Currency || !$this->Locale) {
+            $this->Currency = $this->Currency ?: $order->Currency();
+            $this->Locale = $this->Locale ?: $locale;
+            DB::prepared_query(
+                'UPDATE "ShopInvoice" SET "Currency" = ?, "Locale" = ? WHERE "ID" = ?',
+                [(string) $this->Currency, (string) $this->Locale, $this->ID]
+            );
         }
 
         $remaining = InvoiceService::remainingQuantities($order);
@@ -121,9 +128,11 @@ class ShopInvoice extends DataObject
             return;
         }
 
-        $sort = DocumentLineSnapshotter::snapshotItems($order, ShopInvoiceLine::class, 'InvoiceID', $this->ID, $remaining);
-        $sort = DocumentLineSnapshotter::snapshotModifiers($order, ShopInvoiceLine::class, 'InvoiceID', $this->ID, $sort);
-        DocumentLineSnapshotter::snapshotTaxSummary(ShopInvoiceLine::class, 'InvoiceID', $this->ID, $sort);
+        self::withLocale((string) $this->Locale, function () use ($order, $remaining) {
+            $sort = DocumentLineSnapshotter::snapshotItems($order, ShopInvoiceLine::class, 'InvoiceID', $this->ID, $remaining);
+            $sort = DocumentLineSnapshotter::snapshotModifiers($order, ShopInvoiceLine::class, 'InvoiceID', $this->ID, $sort);
+            DocumentLineSnapshotter::snapshotTaxSummary(ShopInvoiceLine::class, 'InvoiceID', $this->ID, $sort);
+        });
     }
 
     /**
@@ -132,7 +141,7 @@ class ShopInvoice extends DataObject
      */
     public function forTemplate(): string
     {
-        return (string) $this->renderWith('SilverShop/Invoicing/Invoice');
+        return $this->renderInDocumentLocale('SilverShop/Invoicing/Invoice');
     }
 
     /**

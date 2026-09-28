@@ -137,6 +137,8 @@ en:
     COL_DEFAULT: 'Default'
     TAX_CLASSES_NOTE: 'A tax class sets a VAT rate (e.g. 21% standard, 9% food). Assign one to a product on its <strong>Pricing</strong> tab; invoices and credit memos then show a VAT line per rate.'
     TAB_TAX: 'Tax'
+    USE_CUSTOMER_LOCALE: 'Issue documents in the customer''s language'
+    USE_CUSTOMER_LOCALE_DESC: 'On: each invoice / credit memo is written and rendered in the order''s locale (falling back to the shop language). Off: all documents use the shop language.'
   SilverShop\Invoicing\TaxClassCMSExtension:
     RATE_NOTE: 'Enter as a decimal fraction: 0.21 = 21%, 0.09 = 9%, 0 = no tax.'
     TITLE_NOTE: 'Shown on the product Tax-class dropdown, e.g. "Standard rate" or "Reduced rate — food".'

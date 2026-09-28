@@ -42,6 +42,7 @@ class InvoiceSettingsExtension extends Extension
         'InvoicePaperSize' => "Enum('A4,Letter','A4')",
         'InvoiceAutoOnCapture' => 'Boolean(1)',
         'InvoiceEmailOnIssue' => 'Boolean',
+        'InvoiceUseCustomerLocale' => 'Boolean',
     ];
 
     private static array $has_one = [
@@ -76,6 +77,8 @@ class InvoiceSettingsExtension extends Extension
                 ->setDescription(_t(self::class . '.AUTO_ON_CAPTURE_DESC', 'On: paid orders get a finalised invoice automatically. Off: staff create invoices manually (as drafts) from each order.')),
             CheckboxField::create('InvoiceEmailOnIssue', _t(self::class . '.EMAIL_ON_ISSUE', 'Email the invoice to the customer when it is issued'))
                 ->setDescription(_t(self::class . '.EMAIL_ON_ISSUE_DESC', 'Automatically emails the PDF to the order email on capture. You can also email manually from each document.')),
+            CheckboxField::create('InvoiceUseCustomerLocale', _t(self::class . '.USE_CUSTOMER_LOCALE', 'Issue documents in the customer\'s language'))
+                ->setDescription(_t(self::class . '.USE_CUSTOMER_LOCALE_DESC', 'On: each invoice / credit memo is written and rendered in the order\'s locale (falling back to the shop language). Off: all documents use the shop language.')),
         ]);
         $fields->findOrMakeTab($tab)->setTitle(_t(self::class . '.TAB_INVOICING', 'Invoicing'));
 

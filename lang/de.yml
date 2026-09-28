@@ -134,6 +134,8 @@ de:
     COL_DEFAULT: 'Standard'
     TAX_CLASSES_NOTE: 'Eine Steuerklasse legt einen MwSt.-Satz fest (z. B. 21% Standard, 9% Lebensmittel). Weisen Sie einem Produkt auf dessen Tab <strong>Preise</strong> eine zu; Rechnungen und Gutschriften zeigen dann eine MwSt.-Zeile pro Satz.'
     TAB_TAX: 'Steuer'
+    USE_CUSTOMER_LOCALE: 'Dokumente in der Sprache des Kunden ausstellen'
+    USE_CUSTOMER_LOCALE_DESC: 'Ein: Jede Rechnung / Gutschrift wird in der Sprache der Bestellung erstellt und dargestellt (Rückfall auf die Shop-Sprache). Aus: Alle Dokumente verwenden die Shop-Sprache.'
   SilverShop\Invoicing\TaxClassCMSExtension:
     RATE_NOTE: 'Als Dezimalbruch eingeben: 0.21 = 21%, 0.09 = 9%, 0 = keine Steuer.'
     TITLE_NOTE: 'Wird im Steuerklassen-Dropdown des Produkts angezeigt, z. B. "Standardsatz" oder "Ermäßigter Satz — Lebensmittel".'

@@ -134,6 +134,8 @@ es:
     COL_DEFAULT: 'Predeterminado'
     TAX_CLASSES_NOTE: 'Un tipo de IVA fija un porcentaje de IVA (p. ej. 21% general, 9% alimentación). Asígnelo a un producto en su pestaña <strong>Precios</strong>; las facturas y las notas de crédito muestran entonces una línea de IVA por cada porcentaje.'
     TAB_TAX: 'Impuestos'
+    USE_CUSTOMER_LOCALE: 'Emitir los documentos en el idioma del cliente'
+    USE_CUSTOMER_LOCALE_DESC: 'Activado: cada factura / nota de crédito se redacta y muestra en el idioma del pedido (con reserva al idioma de la tienda). Desactivado: todos los documentos usan el idioma de la tienda.'
   SilverShop\Invoicing\TaxClassCMSExtension:
     RATE_NOTE: 'Introdúzcalo como fracción decimal: 0.21 = 21%, 0.09 = 9%, 0 = sin impuesto.'
     TITLE_NOTE: 'Se muestra en el desplegable Tipo de IVA del producto, p. ej. "Tipo general" o "Tipo reducido — alimentación".'

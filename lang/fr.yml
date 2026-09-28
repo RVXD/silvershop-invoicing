@@ -134,6 +134,8 @@ fr:
     COL_DEFAULT: 'Par défaut'
     TAX_CLASSES_NOTE: 'Un taux de TVA définit le pourcentage de TVA appliqué (par ex. 21% standard, 9% alimentaire). Attribuez-en un à un produit dans son onglet <strong>Tarification</strong> ; les factures et avoirs affichent alors une ligne de TVA par taux.'
     TAB_TAX: 'Taxes'
+    USE_CUSTOMER_LOCALE: 'Émettre les documents dans la langue du client'
+    USE_CUSTOMER_LOCALE_DESC: 'Activé : chaque facture / avoir est rédigé et affiché dans la langue de la commande (avec repli sur la langue de la boutique). Désactivé : tous les documents utilisent la langue de la boutique.'
   SilverShop\Invoicing\TaxClassCMSExtension:
     RATE_NOTE: 'Saisir sous forme de fraction décimale : 0.21 = 21%, 0.09 = 9%, 0 = aucune taxe.'
     TITLE_NOTE: 'Affiché dans la liste déroulante Taux de TVA du produit, par ex. "Taux standard" ou "Taux réduit — alimentaire".'

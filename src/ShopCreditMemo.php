@@ -35,6 +35,7 @@ class ShopCreditMemo extends DataObject
         'Reason' => 'Text',
         'CustomerNote' => 'Text',
         'EmailSent' => 'Datetime',
+        'Locale' => 'Varchar(10)', // locale the document was issued/rendered in (frozen with its lines)
     ];
 
     // Credit memos are always issued directly (auto-created on refund).
@@ -84,6 +85,6 @@ class ShopCreditMemo extends DataObject
 
     public function forTemplate(): string
     {
-        return (string) $this->renderWith('SilverShop/Invoicing/CreditMemo');
+        return $this->renderInDocumentLocale('SilverShop/Invoicing/CreditMemo');
     }
 }

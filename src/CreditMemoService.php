@@ -33,8 +33,9 @@ class CreditMemoService
     public static function creditMemoForOrder(Order $order, ?Payment $payment = null, ?string $reason = null): ShopCreditMemo
     {
         $memo = null;
+        $locale = ShopCreditMemo::resolveDocumentLocale($order);
 
-        DB::get_conn()->withTransaction(function () use (&$memo, $order, $payment, $reason) {
+        DB::get_conn()->withTransaction(function () use (&$memo, $order, $payment, $reason, $locale) {
             $memo = ShopCreditMemo::create();
             $memo->OrderID = $order->ID;
             if ($payment) {
@@ -42,6 +43,7 @@ class CreditMemoService
             }
             $memo->Total = (float) ($payment ? $payment->getAmount() : $order->Total());
             $memo->Currency = $order->Currency();
+            $memo->Locale = $locale;
             if ($reason) {
                 $memo->Reason = $reason;
             }
@@ -52,7 +54,9 @@ class CreditMemoService
             $memo->extend('updateDocumentFromOrder', $order, $payment);
             $memo->write();
 
-            DocumentLineSnapshotter::snapshot($order, ShopCreditMemoLine::class, 'CreditMemoID', $memo->ID);
+            ShopCreditMemo::withLocale($locale, function () use ($order, $memo) {
+                DocumentLineSnapshotter::snapshot($order, ShopCreditMemoLine::class, 'CreditMemoID', $memo->ID);
+            });
         });
 
         if ($memo && SiteConfig::current_site_config()->InvoiceEmailOnIssue) {
@@ -81,6 +85,7 @@ class CreditMemoService
             $memo->InvoiceID = $invoice->ID;
             $memo->Total = (float) $invoice->Total;
             $memo->Currency = $invoice->Currency;
+            $memo->Locale = $invoice->Locale; // copies the invoice's frozen line titles → same language
             $memo->Reason = $reason ?: 'Cancellation of invoice ' . $invoice->Number;
             $memo->write();
 

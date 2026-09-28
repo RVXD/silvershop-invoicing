@@ -134,6 +134,8 @@ it:
     COL_DEFAULT: 'Predefinita'
     TAX_CLASSES_NOTE: 'Un''aliquota IVA imposta una percentuale IVA (es. 21% standard, 9% alimentari). Assegnane una a un prodotto nella scheda <strong>Prezzi</strong>; fatture e note di credito mostrano quindi una riga IVA per ogni aliquota.'
     TAB_TAX: 'Imposte'
+    USE_CUSTOMER_LOCALE: 'Emetti i documenti nella lingua del cliente'
+    USE_CUSTOMER_LOCALE_DESC: 'Attivo: ogni fattura / nota di credito viene redatta e visualizzata nella lingua dell''ordine (con ripiego sulla lingua del negozio). Disattivo: tutti i documenti usano la lingua del negozio.'
   SilverShop\Invoicing\TaxClassCMSExtension:
     RATE_NOTE: 'Inserisci come frazione decimale: 0.21 = 21%, 0.09 = 9%, 0 = nessuna imposta.'
     TITLE_NOTE: 'Mostrato nel menu a tendina Aliquota IVA del prodotto, es. "Aliquota standard" o "Aliquota ridotta — alimentari".'

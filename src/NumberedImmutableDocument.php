@@ -16,9 +16,11 @@ use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\FieldType\DBField;
+use SilverStripe\i18n\i18n;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\Security;
+use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * Shared behaviour for immutable, sequentially-numbered financial documents (invoice, credit memo):
@@ -211,7 +213,69 @@ trait NumberedImmutableDocument
      */
     public function DocumentLang(): string
     {
-        return substr(\SilverStripe\i18n\i18n::get_locale(), 0, 2) ?: 'en';
+        $locale = $this->Locale ?: i18n::get_locale();
+        return substr((string) $locale, 0, 2) ?: 'en';
+    }
+
+    /**
+     * The locale a document should be issued/rendered in. With the SiteConfig opt-in enabled, use the
+     * order's locale (then the customer's member locale), falling back to the shop's configured default.
+     * Disabled (default), always the shop default, so documents stay in the native shop language.
+     */
+    public static function resolveDocumentLocale($order): string
+    {
+        $default = (string) (i18n::config()->get('default_locale') ?: i18n::get_locale());
+        $config = SiteConfig::current_site_config();
+        if (!$config || !$config->InvoiceUseCustomerLocale || !$order || !$order->exists()) {
+            return $default;
+        }
+        $locale = (string) $order->Locale;
+        if (!$locale && ($member = $order->Member()) && $member->exists()) {
+            $locale = (string) $member->Locale;
+        }
+        return $locale ?: $default;
+    }
+
+    /**
+     * Run a callback with i18n temporarily switched to $locale, restoring afterwards. Used to snapshot
+     * line/modifier/tax titles in the document's locale. (Item product names come from content and, in a
+     * Fluent shop, follow Fluent's own locale — out of scope here.)
+     *
+     * @template T
+     * @param callable():T $fn
+     * @return T
+     */
+    public static function withLocale(string $locale, callable $fn)
+    {
+        if (!$locale || $locale === i18n::get_locale()) {
+            return $fn();
+        }
+        $previous = i18n::get_locale();
+        i18n::set_locale($locale);
+        try {
+            return $fn();
+        } finally {
+            i18n::set_locale($previous);
+        }
+    }
+
+    /**
+     * Render a template with i18n temporarily switched to this document's frozen locale, so the live
+     * template chrome matches the snapshotted line titles. Falls back to the ambient locale when unset.
+     */
+    protected function renderInDocumentLocale(string $template): string
+    {
+        $locale = (string) $this->Locale;
+        if (!$locale) {
+            return (string) $this->renderWith($template);
+        }
+        $previous = i18n::get_locale();
+        i18n::set_locale($locale);
+        try {
+            return (string) $this->renderWith($template);
+        } finally {
+            i18n::set_locale($previous);
+        }
     }
 
     /**
@@ -315,7 +379,7 @@ trait NumberedImmutableDocument
 
         // A draft is editable: keep the header/relation fields read-only (issue via the button, not by
         // hand), let staff edit only the customer note and the line quantities.
-        foreach (['Status', 'Number', 'Issued', 'Total', 'Currency', 'EmailSent', 'Order', 'Payment'] as $name) {
+        foreach (['Status', 'Number', 'Issued', 'Total', 'Currency', 'Locale', 'EmailSent', 'Order', 'Payment'] as $name) {
             if ($field = $fields->dataFieldByName($name)) {
                 $fields->makeFieldReadonly($field);
             }

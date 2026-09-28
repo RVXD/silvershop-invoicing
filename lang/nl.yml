@@ -137,6 +137,8 @@ nl:
     COL_DEFAULT: 'Standaard'
     TAX_CLASSES_NOTE: 'Een btw-klasse stelt een btw-tarief in (bijv. 21% standaard, 9% voeding). Wijs er een toe aan een product op het tabblad <strong>Prijzen</strong>; facturen en creditnota''s tonen dan een btw-regel per tarief.'
     TAB_TAX: 'Btw'
+    USE_CUSTOMER_LOCALE: 'Documenten uitgeven in de taal van de klant'
+    USE_CUSTOMER_LOCALE_DESC: 'Aan: elke factuur / creditnota wordt geschreven en weergegeven in de taal van de bestelling (met terugval op de winkeltaal). Uit: alle documenten gebruiken de winkeltaal.'
   SilverShop\Invoicing\TaxClassCMSExtension:
     RATE_NOTE: 'Voer in als decimale breuk: 0.21 = 21%, 0.09 = 9%, 0 = geen btw.'
     TITLE_NOTE: 'Wordt getoond in de btw-klasse-keuzelijst van het product, bijv. "Standaardtarief" of "Verlaagd tarief — voeding".'

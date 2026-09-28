@@ -39,7 +39,9 @@ class InvoiceService
 
         // One transaction: the number is reserved during write(); if the snapshot fails and rolls
         // back, the reserved number is released rather than leaving a gap in the series.
-        DB::get_conn()->withTransaction(function () use (&$invoice, $order, $payment) {
+        $locale = ShopInvoice::resolveDocumentLocale($order);
+
+        DB::get_conn()->withTransaction(function () use (&$invoice, $order, $payment, $locale) {
             $invoice = ShopInvoice::create();
             $invoice->skipLineSnapshot = true;
             $invoice->Status = 'Issued'; // auto/full invoice — finalised immediately
@@ -49,11 +51,15 @@ class InvoiceService
             }
             $invoice->Total = (float) $order->Total();
             $invoice->Currency = $order->Currency();
+            $invoice->Locale = $locale;
             // Extension point: adjust the invoice from its order/payment before it is written & frozen.
             $invoice->extend('updateDocumentFromOrder', $order, $payment);
             $invoice->write();
 
-            DocumentLineSnapshotter::snapshot($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID);
+            // Snapshot line/modifier/tax titles in the document's locale (frozen with the document).
+            ShopInvoice::withLocale($locale, function () use ($order, $invoice) {
+                DocumentLineSnapshotter::snapshot($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID);
+            });
         });
 
         // Optionally email the customer once the invoice is fully committed (opt-in via SiteConfig).
@@ -158,8 +164,10 @@ class InvoiceService
             }
         }
 
+        $locale = ShopInvoice::resolveDocumentLocale($order);
+
         $invoice = null;
-        DB::get_conn()->withTransaction(function () use (&$invoice, $order, $payment, $toInvoice, $completing, $total, $issue) {
+        DB::get_conn()->withTransaction(function () use (&$invoice, $order, $payment, $toInvoice, $completing, $total, $issue, $locale) {
             $invoice = ShopInvoice::create();
             $invoice->skipLineSnapshot = true;
             // Manual invoices start as an editable draft (no number yet); $issue finalises immediately.
@@ -170,21 +178,24 @@ class InvoiceService
             }
             $invoice->Total = $total;
             $invoice->Currency = $order->Currency();
+            $invoice->Locale = $locale;
             $invoice->extend('updateDocumentFromOrder', $order, $payment);
             $invoice->write();
 
-            $sort = DocumentLineSnapshotter::snapshotItems(
-                $order,
-                ShopInvoiceLine::class,
-                'InvoiceID',
-                $invoice->ID,
-                $toInvoice
-            );
-            if ($completing) {
-                $sort = DocumentLineSnapshotter::snapshotModifiers($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID, $sort);
-            }
-            // VAT summary on the invoiced items (after any discount lines are present).
-            DocumentLineSnapshotter::snapshotTaxSummary(ShopInvoiceLine::class, 'InvoiceID', $invoice->ID, $sort);
+            ShopInvoice::withLocale($locale, function () use ($order, $invoice, $toInvoice, $completing) {
+                $sort = DocumentLineSnapshotter::snapshotItems(
+                    $order,
+                    ShopInvoiceLine::class,
+                    'InvoiceID',
+                    $invoice->ID,
+                    $toInvoice
+                );
+                if ($completing) {
+                    $sort = DocumentLineSnapshotter::snapshotModifiers($order, ShopInvoiceLine::class, 'InvoiceID', $invoice->ID, $sort);
+                }
+                // VAT summary on the invoiced items (after any discount lines are present).
+                DocumentLineSnapshotter::snapshotTaxSummary(ShopInvoiceLine::class, 'InvoiceID', $invoice->ID, $sort);
+            });
         });
 
         // Only issued invoices are emailed (a draft is not sent until finalised).

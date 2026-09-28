@@ -14,6 +14,7 @@ use SilverShop\Page\Product;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Dev\TestOnly;
+use SilverStripe\SiteConfig\SiteConfig;
 
 /**
  * A modifier that hides itself from the order table (as a zero-value discount does via
@@ -265,5 +266,65 @@ class ShopPartialInvoiceTest extends SapphireTest
 
         $taxClass = TaxClass::get()->byID($taxClass->ID);
         $this->assertFalse($taxClass->canDelete(), 'A tax class with products assigned cannot be deleted');
+    }
+
+    public function testDocumentIssuedAndRenderedInOrderLocaleWhenEnabled(): void
+    {
+        $config = SiteConfig::current_site_config();
+        $config->InvoiceUseCustomerLocale = true;
+        $config->write();
+
+        $product = Product::create();
+        $product->Title = 'Widget';
+        $product->BasePrice = 10;
+        $product->write();
+        $product->publishRecursive();
+
+        $order = Order::create();
+        $order->write();
+        $item = $product->createItem(1);
+        $item->write();
+        $order->Items()->add($item);
+        // SilverShop stamps a cart order's Locale from the current locale on every write, so set the
+        // "placed in Dutch" locale directly and reload.
+        \SilverStripe\ORM\DB::prepared_query('UPDATE "SilverShop_Order" SET "Locale" = ? WHERE "ID" = ?', ['nl_NL', $order->ID]);
+        $order = Order::get()->byID($order->ID);
+
+        $invoice = InvoiceService::invoiceForOrder($order);
+
+        // The order's locale is frozen on the document…
+        $this->assertSame('nl_NL', (string) $invoice->Locale);
+        // …and the template chrome renders in it, regardless of the ambient locale.
+        $html = (string) $invoice->forTemplate();
+        $this->assertStringContainsString('Factuur', $html);
+        $this->assertStringContainsString('Gefactureerd aan', $html);
+        $this->assertStringNotContainsString('Billed to', $html);
+    }
+
+    public function testDocumentUsesShopLocaleWhenDisabled(): void
+    {
+        $config = SiteConfig::current_site_config();
+        $config->InvoiceUseCustomerLocale = false;
+        $config->write();
+
+        $product = Product::create();
+        $product->Title = 'Widget';
+        $product->BasePrice = 10;
+        $product->write();
+        $product->publishRecursive();
+
+        $order = Order::create();
+        $order->Locale = 'nl_NL'; // even with a Dutch order, the option is off → shop language wins
+        $order->write();
+        $item = $product->createItem(1);
+        $item->write();
+        $order->Items()->add($item);
+
+        $invoice = InvoiceService::invoiceForOrder($order);
+
+        $this->assertNotSame('nl_NL', (string) $invoice->Locale);
+        $html = (string) $invoice->forTemplate();
+        $this->assertStringContainsString('Billed to', $html);
+        $this->assertStringNotContainsString('Gefactureerd aan', $html);
     }
 }
