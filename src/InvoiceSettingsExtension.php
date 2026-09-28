@@ -81,8 +81,12 @@ class InvoiceSettingsExtension extends Extension
         $taxGrid = GridField::create('ShopTaxClasses', 'Tax classes', TaxClass::get(), GridFieldConfig_RecordEditor::create());
         $taxColumns = $taxGrid->getConfig()->getComponentByType(GridFieldDataColumns::class);
         if ($taxColumns) {
-            // Show the rate as a percentage (TaxClassCMSExtension::getRatePercent), not the raw fraction.
-            $taxColumns->setDisplayFields(['Title' => 'Title', 'RatePercent' => 'Rate']);
+            // Rate as a percentage (not the raw fraction) + which class is the default for new products.
+            $taxColumns->setDisplayFields([
+                'Title' => 'Title',
+                'RatePercent' => 'Rate',
+                'DefaultLabel' => 'Default',
+            ]);
         }
         $fields->addFieldsToTab($taxTab, [
             $taxGrid,

@@ -9,6 +9,7 @@ use SilverShop\Invoicing\ShopInvoice;
 use SilverShop\Invoicing\ShopInvoiceLine;
 use SilverShop\Model\Modifiers\OrderModifier;
 use SilverShop\Model\Order;
+use SilverShop\Model\TaxClass;
 use SilverShop\Page\Product;
 use SilverStripe\Core\Validation\ValidationException;
 use SilverStripe\Dev\SapphireTest;
@@ -223,5 +224,46 @@ class ShopPartialInvoiceTest extends SapphireTest
         $invoice = ShopInvoice::get()->byID($invoice->ID);
         $this->assertEqualsWithDelta(230, (float) $invoice->Total, 0.01);
         $this->assertSame(2, (int) $invoice->TaxLines()->count());
+    }
+
+    public function testOnlyOneTaxClassStaysDefault(): void
+    {
+        $a = TaxClass::create();
+        $a->Title = 'Standard';
+        $a->Rate = 0.21;
+        $a->IsDefault = true;
+        $a->write();
+        $this->assertTrue((bool) TaxClass::get()->byID($a->ID)->IsDefault);
+
+        // Marking a second class default clears the first — only one default survives.
+        $b = TaxClass::create();
+        $b->Title = 'Reduced';
+        $b->Rate = 0.09;
+        $b->IsDefault = true;
+        $b->write();
+
+        $this->assertFalse((bool) TaxClass::get()->byID($a->ID)->IsDefault);
+        $this->assertTrue((bool) TaxClass::get()->byID($b->ID)->IsDefault);
+        $this->assertSame(1, (int) TaxClass::get()->filter('IsDefault', true)->count());
+    }
+
+    public function testTaxClassWithProductsCannotBeDeleted(): void
+    {
+        $this->logInWithPermission('ADMIN');
+
+        $taxClass = TaxClass::create();
+        $taxClass->Title = 'Standard';
+        $taxClass->Rate = 0.21;
+        $taxClass->write();
+        $this->assertTrue($taxClass->canDelete(), 'An unused tax class can be deleted');
+
+        $product = Product::create();
+        $product->Title = 'Widget';
+        $product->BasePrice = 10;
+        $product->TaxClassID = $taxClass->ID;
+        $product->write();
+
+        $taxClass = TaxClass::get()->byID($taxClass->ID);
+        $this->assertFalse($taxClass->canDelete(), 'A tax class with products assigned cannot be deleted');
     }
 }
