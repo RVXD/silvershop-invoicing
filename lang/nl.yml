@@ -122,7 +122,7 @@ nl:
     SELLER_NAME: 'Naam verkoper'
     SELLER_NAME_DESC: 'Wordt getoond als afzender. Standaard de sitetitel als dit leeg is.'
     SELLER_ADDRESS: 'Adres verkoper'
-    VAT_NUMBER: 'btw-nummer'
+    VAT_NUMBER: 'Btw-nummer'
     REG_NUMBER: 'Registratie- / bedrijfsnummer'
     FOOTER_TEXT: 'Voettekst document'
     FOOTER_TEXT_DESC: 'Betalingsvoorwaarden / bedankbericht dat onderaan elk document wordt afgedrukt.'
