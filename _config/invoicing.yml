@@ -13,6 +13,10 @@ SilverShop\Model\Order:
   order_number_series: 'year'
   order_number_padding: 5
 
+SilverShop\Page\Product:
+  extensions:
+    - SilverShop\Invoicing\ProductInvoiceExtension
+
 SilverStripe\Omnipay\Model\Payment:
   extensions:
     - SilverShop\Invoicing\PaymentInvoiceExtension
