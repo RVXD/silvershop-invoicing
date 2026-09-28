@@ -5,7 +5,7 @@ namespace SilverShop\Invoicing;
 use SilverStripe\Core\Extension;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\Forms\GridField\GridField;
-use SilverStripe\Forms\GridField\GridFieldConfig_Base;
+use SilverStripe\Forms\GridField\GridFieldConfig_RelationEditor;
 use SilverStripe\Forms\GridField\GridFieldDataColumns;
 
 /**
@@ -34,15 +34,15 @@ class TaxClassCMSExtension extends Extension
 
         // Inside SiteConfig's nested edit form the scaffolder downgrades the Products has_many to a
         // load-everything token field (unusable with thousands of products) instead of the grid-on-a-tab
-        // it would produce at top level. Restore that: a read-only, paginated, filterable grid on a
-        // "Products" tab. (Products are assigned to a class from their own Pricing tab, not here.)
+        // it produces at top level. Restore that: the same GridFieldConfig_RelationEditor scaffolding
+        // would use, on a "Products" tab. (Products are normally assigned a class from their Pricing tab.)
         if ($fields->dataFieldByName('Products')) {
             $fields->removeByName('Products');
             $grid = GridField::create(
                 'Products',
                 _t(self::class . '.PRODUCTS', 'Products with this tax class'),
                 $this->getOwner()->Products(),
-                GridFieldConfig_Base::create()
+                GridFieldConfig_RelationEditor::create()
             );
             $columns = $grid->getConfig()->getComponentByType(GridFieldDataColumns::class);
             if ($columns) {
