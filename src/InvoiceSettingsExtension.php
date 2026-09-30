@@ -57,19 +57,32 @@ class InvoiceSettingsExtension extends Extension
         // tab if SilverShop's ShopConfigExtension hasn't added the Shop tab.
         $tab = $fields->fieldByName('Root.Shop') ? 'Root.Shop.ShopTabs.Invoicing' : 'Root.Invoicing';
 
-        $fields->addFieldsToTab($tab, [
+        // The seller identity (name, address, VAT, logo) comes from silvershop/store-profile when it is installed;
+        // otherwise these fields live here so invoicing works standalone.
+        $identity = $this->usesStoreProfile()
+            ? [
+                LiteralField::create('SellerFromProfile', '<p class="message notice">' . _t(
+                    self::class . '.SELLER_FROM_PROFILE',
+                    'The seller name, address, VAT number and logo come from the <strong>Store profile</strong> tab.'
+                ) . '</p>'),
+            ]
+            : [
+                UploadField::create('InvoiceLogo', _t(self::class . '.LOGO', 'Logo'))
+                    ->setFolderName('invoicing')
+                    ->setAllowedFileCategories('image'),
+                TextField::create('InvoiceSellerName', _t(self::class . '.SELLER_NAME', 'Seller name'))
+                    ->setDescription(_t(self::class . '.SELLER_NAME_DESC', 'Shown as the sender. Defaults to the site title when empty.')),
+                TextareaField::create('InvoiceSellerAddress', _t(self::class . '.SELLER_ADDRESS', 'Seller address')),
+                TextField::create('InvoiceVatNumber', _t(self::class . '.VAT_NUMBER', 'VAT number')),
+            ];
+
+        $fields->addFieldsToTab($tab, array_merge([
             DropdownField::create('InvoicePaperSize', _t(self::class . '.PAPER_SIZE', 'PDF paper size'), [
                 'A4' => 'A4',
                 'Letter' => _t(self::class . '.PAPER_LETTER', 'Letter (US)'),
             ])
                 ->setDescription(_t(self::class . '.PAPER_SIZE_DESC', 'A4 is the European standard; Letter is US.')),
-            UploadField::create('InvoiceLogo', _t(self::class . '.LOGO', 'Logo'))
-                ->setFolderName('invoicing')
-                ->setAllowedFileCategories('image'),
-            TextField::create('InvoiceSellerName', _t(self::class . '.SELLER_NAME', 'Seller name'))
-                ->setDescription(_t(self::class . '.SELLER_NAME_DESC', 'Shown as the sender. Defaults to the site title when empty.')),
-            TextareaField::create('InvoiceSellerAddress', _t(self::class . '.SELLER_ADDRESS', 'Seller address')),
-            TextField::create('InvoiceVatNumber', _t(self::class . '.VAT_NUMBER', 'VAT number')),
+        ], $identity, [
             TextField::create('InvoiceRegistrationNumber', _t(self::class . '.REG_NUMBER', 'Registration / company no.')),
             TextareaField::create('InvoiceFooterText', _t(self::class . '.FOOTER_TEXT', 'Document footer text'))
                 ->setDescription(_t(self::class . '.FOOTER_TEXT_DESC', 'Payment terms / thank-you note printed at the bottom of every document.')),
@@ -79,7 +92,7 @@ class InvoiceSettingsExtension extends Extension
                 ->setDescription(_t(self::class . '.EMAIL_ON_ISSUE_DESC', 'Automatically emails the PDF to the order email on capture. You can also email manually from each document.')),
             CheckboxField::create('InvoiceUseCustomerLocale', _t(self::class . '.USE_CUSTOMER_LOCALE', 'Issue documents in the customer\'s language'))
                 ->setDescription(_t(self::class . '.USE_CUSTOMER_LOCALE_DESC', 'On: each invoice / credit memo is written and rendered in the order\'s locale (falling back to the shop language). Off: all documents use the shop language.')),
-        ]);
+        ]));
         $fields->findOrMakeTab($tab)->setTitle(_t(self::class . '.TAB_INVOICING', 'Invoicing'));
 
         // Tax classes: a small editor under Shop settings. They rarely change, so this lives here rather
@@ -113,11 +126,40 @@ class InvoiceSettingsExtension extends Extension
     }
 
     /**
-     * Seller name, falling back to the site title.
+     * Whether silvershop/store-profile is installed (its SiteConfig extension is present).
+     */
+    private function usesStoreProfile(): bool
+    {
+        return $this->getOwner()->hasMethod('StoreProfileName');
+    }
+
+    /**
+     * Seller name: the central store profile when installed, else our own field, else the site title.
      */
     public function InvoiceSellerNameOrDefault(): string
     {
-        return (string) ($this->getOwner()->InvoiceSellerName ?: $this->getOwner()->Title);
+        $owner = $this->getOwner();
+        if ($this->usesStoreProfile()) {
+            $name = (string) $owner->StoreProfileName();
+            if ($name !== '') {
+                return $name;
+            }
+        }
+
+        return (string) ($owner->InvoiceSellerName ?: $owner->Title);
+    }
+
+    /**
+     * VAT number: the central store profile when installed, else our own field.
+     */
+    public function InvoiceVatNumberOrDefault(): string
+    {
+        $owner = $this->getOwner();
+        if ($this->usesStoreProfile() && $owner->VatNumber) {
+            return (string) $owner->VatNumber;
+        }
+
+        return (string) $owner->InvoiceVatNumber;
     }
 
     /**
@@ -137,7 +179,9 @@ class InvoiceSettingsExtension extends Extension
     public function InvoiceLogoImageTag(): DBHTMLText
     {
         $empty = DBField::create_field('HTMLFragment', '');
-        $logo = $this->getOwner()->InvoiceLogo();
+        $owner = $this->getOwner();
+        $storeLogo = $this->usesStoreProfile() ? $owner->Logo() : null;
+        $logo = ($storeLogo && $storeLogo->exists()) ? $storeLogo : $owner->InvoiceLogo();
         if (!$logo || !$logo->exists()) {
             return $empty;
         }
@@ -162,7 +206,12 @@ class InvoiceSettingsExtension extends Extension
 
     public function InvoiceSellerAddressHTML(): DBHTMLText
     {
-        return $this->multilineToHtml((string) $this->getOwner()->InvoiceSellerAddress);
+        $owner = $this->getOwner();
+        if ($this->usesStoreProfile() && $owner->hasStoreAddress()) {
+            return DBField::create_field('HTMLFragment', $owner->StoreFormattedAddress(true));
+        }
+
+        return $this->multilineToHtml((string) $owner->InvoiceSellerAddress);
     }
 
     public function InvoiceFooterTextHTML(): DBHTMLText

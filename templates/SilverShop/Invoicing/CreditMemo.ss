@@ -16,8 +16,8 @@
             <td>
                 $SiteConfig.InvoiceLogoImageTag
                 <div class="brand">$SiteConfig.InvoiceSellerNameOrDefault</div>
-                <% if $SiteConfig.InvoiceSellerAddress %><p class="brand__addr">$SiteConfig.InvoiceSellerAddressHTML</p><% end_if %>
-                <% if $SiteConfig.InvoiceVatNumber %><p class="brand__meta"><%t SilverShop\Invoicing\Document.VAT "VAT" %> $SiteConfig.InvoiceVatNumber</p><% end_if %>
+                <% if $SiteConfig.InvoiceSellerAddressHTML %><p class="brand__addr">$SiteConfig.InvoiceSellerAddressHTML</p><% end_if %>
+                <% if $SiteConfig.InvoiceVatNumberOrDefault %><p class="brand__meta"><%t SilverShop\Invoicing\Document.VAT "VAT" %> $SiteConfig.InvoiceVatNumberOrDefault</p><% end_if %>
                 <% if $SiteConfig.InvoiceRegistrationNumber %><p class="brand__meta"><%t SilverShop\Invoicing\Document.REG "Reg." %> $SiteConfig.InvoiceRegistrationNumber</p><% end_if %>
             </td>
             <td class="head__right">
