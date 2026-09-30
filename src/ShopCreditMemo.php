@@ -24,7 +24,7 @@ class ShopCreditMemo extends DataObject
 {
     use NumberedImmutableDocument;
 
-    private static string $table_name = 'ShopCreditMemo';
+    private static string $table_name = 'SilverShop_CreditMemo';
 
     private static array $db = [
         'Status' => "Enum('Draft,Issued','Issued')",

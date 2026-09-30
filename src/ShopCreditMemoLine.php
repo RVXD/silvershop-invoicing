@@ -19,7 +19,7 @@ use SilverStripe\ORM\FieldType\DBHTMLText;
  */
 class ShopCreditMemoLine extends DataObject
 {
-    private static string $table_name = 'ShopCreditMemoLine';
+    private static string $table_name = 'SilverShop_CreditMemoLine';
 
     private static array $db = [
         'Kind' => "Enum('Item,Modifier,Tax','Item')",

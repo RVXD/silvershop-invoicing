@@ -23,7 +23,7 @@ class ShopInvoice extends DataObject
 {
     use NumberedImmutableDocument;
 
-    private static string $table_name = 'ShopInvoice';
+    private static string $table_name = 'SilverShop_Invoice';
 
     private static array $db = [
         'Status' => "Enum('Draft,Issued','Issued')",
@@ -118,7 +118,7 @@ class ShopInvoice extends DataObject
             $this->Currency = $this->Currency ?: $order->Currency();
             $this->Locale = $this->Locale ?: $locale;
             DB::prepared_query(
-                'UPDATE "ShopInvoice" SET "Currency" = ?, "Locale" = ? WHERE "ID" = ?',
+                'UPDATE "SilverShop_Invoice" SET "Currency" = ?, "Locale" = ? WHERE "ID" = ?',
                 [(string) $this->Currency, (string) $this->Locale, $this->ID]
             );
         }

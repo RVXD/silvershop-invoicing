@@ -23,7 +23,7 @@ use SilverStripe\Security\Permission;
  */
 class ShopInvoiceLine extends DataObject
 {
-    private static string $table_name = 'ShopInvoiceLine';
+    private static string $table_name = 'SilverShop_InvoiceLine';
 
     private static array $db = [
         'Kind' => "Enum('Item,Modifier,Tax','Item')",

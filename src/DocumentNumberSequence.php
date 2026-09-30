@@ -20,7 +20,7 @@ use SilverStripe\Security\Permission;
  */
 class DocumentNumberSequence extends DataObject
 {
-    private static string $table_name = 'ShopDocumentNumberSequence';
+    private static string $table_name = 'SilverShop_DocumentNumberSequence';
 
     private static array $db = [
         'SeriesKey' => 'Varchar(64)',

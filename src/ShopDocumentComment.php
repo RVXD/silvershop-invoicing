@@ -21,7 +21,7 @@ use SilverStripe\Security\Security;
  */
 class ShopDocumentComment extends DataObject
 {
-    private static string $table_name = 'ShopDocumentComment';
+    private static string $table_name = 'SilverShop_DocumentComment';
 
     private static string $singular_name = 'Comment';
 

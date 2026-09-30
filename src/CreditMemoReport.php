@@ -20,7 +20,7 @@ class CreditMemoReport extends ShopPeriodReport
 
     protected $dataClass = ShopCreditMemo::class;
 
-    protected $periodfield = '"ShopCreditMemo"."Issued"';
+    protected $periodfield = '"SilverShop_CreditMemo"."Issued"';
 
     protected $grouping = true;
 
@@ -38,8 +38,8 @@ class CreditMemoReport extends ShopPeriodReport
     public function query(array $params): ShopReportQuery|SQLSelect
     {
         return parent::query($params)
-            ->addWhere('"ShopCreditMemo"."Status" = \'Issued\'')
-            ->selectField('COUNT("ShopCreditMemo"."ID")', 'Count')
-            ->selectField('SUM("ShopCreditMemo"."Total")', 'Refunds');
+            ->addWhere('"SilverShop_CreditMemo"."Status" = \'Issued\'')
+            ->selectField('COUNT("SilverShop_CreditMemo"."ID")', 'Count')
+            ->selectField('SUM("SilverShop_CreditMemo"."Total")', 'Refunds');
     }
 }
