@@ -26,7 +26,7 @@ class DocumentLineSnapshotter
     {
         $sort = self::snapshotItems($order, $lineClass, $parentField, $parentId);
         $sort = self::snapshotModifiers($order, $lineClass, $parentField, $parentId, $sort);
-        self::snapshotTaxSummary($lineClass, $parentField, $parentId, $sort);
+        self::snapshotTaxSummary($lineClass, $parentField, $parentId, $sort, $order);
     }
 
     /**
@@ -136,8 +136,19 @@ class DocumentLineSnapshotter
      * @param class-string $lineClass
      * @return int the last Sort index used
      */
-    public static function snapshotTaxSummary(string $lineClass, string $parentField, int $parentId, int $sort = 0): int
-    {
+    public static function snapshotTaxSummary(
+        string $lineClass,
+        string $parentField,
+        int $parentId,
+        int $sort = 0,
+        ?Order $order = null
+    ): int {
+        // Reverse-charged orders carry no VAT (the buyer self-accounts); the reverse-charge modifier line
+        // already removed it from the total, so emit no per-rate VAT lines.
+        if ($order && $order->ReverseCharge) {
+            return $sort;
+        }
+
         $lines = $lineClass::get()->filter($parentField, $parentId);
         $itemLines = $lines->filter('Kind', 'Item');
         $itemGross = (float) $itemLines->sum('Amount');
