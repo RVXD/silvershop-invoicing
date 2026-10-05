@@ -34,7 +34,7 @@
         <tr>
             <td>
                 <p class="party__label"><%t SilverShop\Invoicing\Document.BILLED_TO "Billed to" %></p>
-                <p class="party__body"><% if $Order.BillingAddress %>$Order.BillingAddress<br /><% else %>$Order.Name<br /><% end_if %>$Order.LatestEmail</p>
+                <p class="party__body"><% if $Order.BillingAddress %>$Order.BillingAddress<br /><% else %>$Order.Name<br /><% end_if %>$Order.LatestEmail<% if $BuyerVatNumber %><br /><%t SilverShop\Invoicing\Document.VAT "VAT" %> $BuyerVatNumber<% end_if %></p>
             </td>
             <td>
                 <% if $Order.ShippingAddress %>
@@ -83,6 +83,8 @@
             </td>
         </tr>
     </table>
+
+    <% if $ReverseCharge %><div class="doc__note doc__note--reverse-charge">$ReverseChargeNote</div><% end_if %>
 
     <% if $CustomerNote %><div class="doc__note">$CustomerNote</div><% end_if %>
 
