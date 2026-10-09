@@ -39,17 +39,23 @@ class DocumentNumberSequence extends DataObject
     {
         $table = DataObject::getSchema()->tableName(self::class);
 
-        // Ensure the counter row exists (first document of a series). INSERT IGNORE is a no-op when the
-        // row already exists (unique SeriesKey), so this is race-safe with no ORM round-trip.
-        DB::prepared_query(
-            "INSERT IGNORE INTO \"$table\" (\"ClassName\", \"Created\", \"LastEdited\", \"SeriesKey\", \"NextNumber\") "
-            . 'VALUES (?, NOW(), NOW(), ?, ?)',
-            [self::class, $seriesKey, $start]
-        );
+        // Ensure the counter row exists (first document of a series). Race-safe across databases: a
+        // concurrent insert of the same unique SeriesKey throws, which we swallow — the row exists either
+        // way. (Avoids MySQL-only INSERT IGNORE so the module stays portable to SQLite / Postgres.)
+        if (!self::get()->filter('SeriesKey', $seriesKey)->exists()) {
+            try {
+                $seq = self::create();
+                $seq->SeriesKey = $seriesKey;
+                $seq->NextNumber = $start;
+                $seq->write();
+            } catch (\Exception $e) {
+                // Another process created this series first; the row now exists.
+            }
+        }
 
         // Row-locking advance, then read back the value we hold (same connection / transaction).
         DB::prepared_query(
-            "UPDATE \"$table\" SET \"NextNumber\" = \"NextNumber\" + 1, \"LastEdited\" = NOW() WHERE \"SeriesKey\" = ?",
+            "UPDATE \"$table\" SET \"NextNumber\" = \"NextNumber\" + 1 WHERE \"SeriesKey\" = ?",
             [$seriesKey]
         );
         $advanced = (int) DB::prepared_query(
