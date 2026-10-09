@@ -33,3 +33,13 @@ SilverStripe\SiteConfig\SiteConfig:
 SilverStripe\Forms\GridField\GridFieldDetailForm_ItemRequest:
   extensions:
     - SilverShop\Invoicing\DocumentCommentsFormExtension
+
+---
+Name: silvershop-invoicing-ledger
+Only:
+  moduleexists: 'silvershop/ledger'
+---
+# Link each ledger posting entry to its source document (invoice / credit memo), when the ledger is present.
+SilverShop\Ledger\ShopPostingEntry:
+  extensions:
+    - SilverShop\Invoicing\PostingEntryDocumentExtension

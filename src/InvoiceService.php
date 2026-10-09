@@ -62,6 +62,11 @@ class InvoiceService
             });
         });
 
+        // Reference this document from its ledger posting entry (no-op without silvershop/ledger).
+        if ($invoice) {
+            LedgerDocumentLink::linkDocument($invoice);
+        }
+
         // Optionally email the customer once the invoice is fully committed (opt-in via SiteConfig).
         if ($invoice && SiteConfig::current_site_config()->InvoiceEmailOnIssue) {
             DocumentEmailService::send($invoice);

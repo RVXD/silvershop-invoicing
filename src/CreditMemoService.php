@@ -59,6 +59,11 @@ class CreditMemoService
             });
         });
 
+        // Reference this document from its ledger posting entry (no-op without silvershop/ledger).
+        if ($memo) {
+            LedgerDocumentLink::linkDocument($memo);
+        }
+
         if ($memo && SiteConfig::current_site_config()->InvoiceEmailOnIssue) {
             DocumentEmailService::send($memo);
         }

@@ -31,6 +31,16 @@ wins. (PDF output — rendering this same HTML to PDF — is a planned follow-up
 - **`OrderInvoiceExtension`** — a read-only **Invoices** tab on the order.
 - **`InvoiceAdmin`** (`/admin/invoices`) — global, filterable, Order/Customer columns, CSV export, no import.
 
+## Ledger integration
+
+When [`silvershop/ledger`](https://github.com/silvershop/silvershop-ledger) is installed, every invoice
+and credit memo is **linked to its matching posting entry** (by payment), so the ledger references the
+source document and its CMS **Document** column shows the invoice number. The link is established
+whichever side is created second — the document after the entry (via `InvoiceService` / `CreditMemoService`)
+or the entry after the document (via `PostingEntryDocumentExtension`) — and is wired automatically under a
+`moduleexists: silvershop/ledger` config guard. Without the ledger module everything is a silent no-op, so
+invoicing works standalone.
+
 ## Licence
 
 BSD-3-Clause.
