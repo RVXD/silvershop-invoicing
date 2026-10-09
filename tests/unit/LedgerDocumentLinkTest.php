@@ -2,6 +2,7 @@
 
 namespace SilverShop\Invoicing\Tests;
 
+use SilverShop\Invoicing\InvoiceService;
 use SilverShop\Invoicing\LedgerDocumentLink;
 use SilverShop\Invoicing\ShopInvoice;
 use SilverShop\Ledger\ShopPostingEntry;
@@ -11,8 +12,10 @@ use SilverStripe\Omnipay\Model\Payment;
 
 /**
  * Covers the invoice ↔ ledger link: when silvershop/ledger is installed, each posting entry references
- * its source document (invoice / credit memo). Exercises both directions (document-first and
- * entry-first) plus the reverse lookup. Skipped when the ledger is not present.
+ * its source document (invoice / credit memo). Exercises both directions — document issued after the
+ * entry exists (forward) and entry written after the document exists (reverse) — plus the reverse
+ * lookup. Skipped when the ledger is not present. Issuance is driven explicitly, so the test does not
+ * depend on the merchant's auto-invoice-on-capture SiteConfig switch (off by default).
  */
 class LedgerDocumentLinkTest extends SapphireTest
 {
@@ -29,45 +32,71 @@ class LedgerDocumentLinkTest extends SapphireTest
         }
     }
 
-    private function capturePayment(Order $order): Payment
+    private function payment(Order $order, string $status): Payment
     {
         $payment = Payment::create();
         $payment->OrderID = $order->ID;
         $payment->Gateway = 'Manual';
         $payment->MoneyAmount = 7;
         $payment->MoneyCurrency = 'NZD';
-        $payment->Status = 'Captured';
-        $payment->write(); // issues the invoice AND posts the Captured ledger entry
+        $payment->Status = $status;
+        $payment->write();
 
         return $payment;
     }
 
-    public function testCapturedPaymentLinksInvoiceToLedgerEntry(): void
+    private function capturedEntryFor(Payment $payment): ?ShopPostingEntry
+    {
+        return ShopPostingEntry::get()->filter(['PaymentID' => $payment->ID, 'Type' => 'Captured'])->first();
+    }
+
+    public function testForwardLinkWhenDocumentIssuedAfterEntry(): void
     {
         $order = $this->objFromFixture(Order::class, 'order');
-        $payment = $this->capturePayment($order);
+        $payment = $this->payment($order, 'Captured'); // posts the Captured ledger entry
 
-        $invoice = ShopInvoice::get()->filter('PaymentID', $payment->ID)->first();
-        $this->assertNotNull($invoice, 'an invoice is issued for the captured payment');
+        $this->assertNotNull($this->capturedEntryFor($payment), 'a Captured ledger entry is posted for the payment');
 
-        $entry = ShopPostingEntry::get()
-            ->filter(['PaymentID' => $payment->ID, 'Type' => 'Captured'])->first();
-        $this->assertNotNull($entry, 'a Captured ledger entry is posted for the payment');
+        // Idempotent: issues the invoice (and links the entry) unless the merchant's auto-on-capture switch
+        // already did on write. Either way the entry ends up referencing the invoice.
+        $invoice = InvoiceService::invoiceForPayment($payment);
+        $this->assertNotNull($invoice, 'an invoice is issued for the payment');
+
+        $entry = $this->capturedEntryFor($payment);
         $this->assertSame((int) $invoice->ID, (int) $entry->DocumentID, 'the ledger entry references the invoice');
         $this->assertSame(ShopInvoice::class, $entry->DocumentClass);
         $this->assertSame((string) $invoice->Number, $entry->getDocumentLabel());
     }
 
+    public function testReverseLinkWhenEntryWrittenAfterDocument(): void
+    {
+        $order = $this->objFromFixture(Order::class, 'order');
+        $payment = $this->payment($order, 'Created'); // not captured → no ledger entry yet
+
+        $invoice = InvoiceService::invoiceForPayment($payment);
+        $this->assertNotNull($invoice);
+        $this->assertNull($this->capturedEntryFor($payment), 'no ledger entry before capture');
+
+        // Post the ledger entry now; PostingEntryDocumentExtension links it to the existing invoice on write.
+        $entry = ShopPostingEntry::create();
+        $entry->Type = 'Captured';
+        $entry->Amount = 7;
+        $entry->OrderID = $order->ID;
+        $entry->PaymentID = $payment->ID;
+        $entry->write();
+
+        $this->assertSame((int) $invoice->ID, (int) $entry->DocumentID, 'the new entry links to the existing invoice');
+        $this->assertSame(ShopInvoice::class, $entry->DocumentClass);
+    }
+
     public function testDocumentForResolvesTheSourceDocument(): void
     {
         $order = $this->objFromFixture(Order::class, 'order');
-        $payment = $this->capturePayment($order);
+        $payment = $this->payment($order, 'Captured');
+        $invoice = InvoiceService::invoiceForPayment($payment);
 
-        $entry = ShopPostingEntry::get()
-            ->filter(['PaymentID' => $payment->ID, 'Type' => 'Captured'])->first();
-
-        $document = LedgerDocumentLink::documentFor($entry);
+        $document = LedgerDocumentLink::documentFor($this->capturedEntryFor($payment));
         $this->assertInstanceOf(ShopInvoice::class, $document);
-        $this->assertSame((int) $payment->ID, (int) $document->PaymentID);
+        $this->assertSame((int) $invoice->ID, (int) $document->ID);
     }
 }

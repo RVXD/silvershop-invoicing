@@ -10,6 +10,12 @@
             "homepage": "https://github.com/silvershop/silvershop-invoicing/graphs/contributors"
         }
     ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/RVXD/silvershop-ledger.git"
+        }
+    ],
     "require": {
         "php": "^8.3",
         "silverstripe/framework": "^6.0",
@@ -19,7 +25,8 @@
         "lekoala/silverstripe-cms-actions": "^2.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^11.0"
+        "phpunit/phpunit": "^11.0",
+        "silverstripe/sqlite3": "^4"
     },
     "suggest": {
         "silvershop/store-profile": "Central shop identity (name, address, VAT, logo) shared with shipping labels and other modules."
@@ -27,6 +34,14 @@
     "extra": {
         "branch-alias": {
             "dev-main": "6.x-dev"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "silverstripe/recipe-plugin": true,
+            "silverstripe/vendor-plugin": true,
+            "php-http/discovery": false
         }
     },
     "autoload": {
